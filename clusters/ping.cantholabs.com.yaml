@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ping-deployment
+  labels:
+    app: ping
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ping
+  template:
+    metadata:
+      labels:
+        app: ping
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ping-service
+spec:
+  selector:
+    app: ping
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ping-ingressroute
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`ping.cantholabs.com`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: ping-service
+          port: 80
