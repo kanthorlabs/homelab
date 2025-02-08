@@ -5,7 +5,7 @@ metadata:
   labels:
     app: ping
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: ping
@@ -21,6 +21,69 @@ spec:
             - containerPort: 80
 
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthz-deployment
+  labels:
+    app: healthz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: healthz
+  template:
+    metadata:
+      labels:
+        app: healthz
+    spec:
+      containers:
+        - name: healthz
+          image: python:3.9-slim
+          command: ["python", "/app/healthz.py"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: healthz-script
+              mountPath: /app
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+      volumes:
+        - name: healthz-script
+          configMap:
+            name: healthz-script
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthz-script
+data:
+  healthz.py: |
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    from datetime import datetime
+
+    class HealthzHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/healthz':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                response = {
+                    "datetime": str(datetime.now()),
+                    "path": self.path,
+                    "headers": dict(self.headers)
+                }
+                self.wfile.write(str(response).encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+    server = HTTPServer(('0.0.0.0', 8080), HealthzHandler)
+    server.serve_forever()
+
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -29,9 +92,25 @@ spec:
   selector:
     app: ping
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
       targetPort: 80
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthz-service
+spec:
+  selector:
+    app: healthz
+  ports:
+    - name: healthz
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
   type: ClusterIP
 
 ---
@@ -43,6 +122,11 @@ spec:
   entryPoints:
     - web
   routes:
+    - match: Host(`ping.cantholabs.com`) && PathPrefix(`/healthz`)
+      kind: Rule
+      services:
+        - name: healthz-service
+          port: 8080
     - match: Host(`ping.cantholabs.com`) && PathPrefix(`/`)
       kind: Rule
       services:
