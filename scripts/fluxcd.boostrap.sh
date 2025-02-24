@@ -5,7 +5,7 @@ GITHUB_TOKEN=$GITHUB_TOKEN
 GITHUB_USER=${GITHUB_USER:-"kanthorlabs"}
 GITHUB_REPO=${GITHUB_REPO:-"homelab"}
 GITHUB_BRANCH=${GITHUB_BRANCH:-"main"}
-CLUSTER_PATH=${CLUSTER_PATH:-"cantholabs"}
+CLUSTER_PATH=${CLUSTER_PATH:-"clusters/cantholabs"}
 
 if [[ -z "$GITHUB_TOKEN" ]]; then
     echo "❌ ERROR: GITHUB_TOKEN is required but not set!"
