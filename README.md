@@ -1,0 +1,44 @@
+# homelab
+
+Setup of a home server that publishes local services through a Cloudflare Tunnel and nginx.
+
+Every service listens on `127.0.0.1` only. The tunnel sends every request of one host to nginx, and nginx routes each `/s/<service-name>` path to its local service.
+
+## Before you start
+
+- A Debian or Ubuntu server with `sudo`.
+- A Cloudflare Tunnel that runs on the server as the `cloudflared` systemd service.
+- A Cloudflare Access application that covers the full host.
+- podman or docker for the containers.
+
+## Configure
+
+Copy `.env.example` to `.env`, then set your public host:
+
+```sh
+cp .env.example .env
+```
+
+`.env` stays on the server. Git ignores it. The scripts read `.env` as data and never run it.
+
+## Targets
+
+| Target                  | Effect                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `make nginx`            | Install the nginx site on `127.0.0.1:80`. A failed `nginx -t` restores the previous site. |
+| `make kanthord`         | Run the kanthord container under `/s/kanthord` on `127.0.0.1:31416`.          |
+| `make kanthord-cleanup` | Remove the kanthord container. Ask before the removal of its volume.          |
+| `make check`            | Lint the scripts with shellcheck.                                              |
+
+`make help` lists the variables of each target.
+
+## Security model
+
+- nginx and every container bind `127.0.0.1`. The server opens no port to the local network or to the internet.
+- Cloudflare terminates HTTPS. Cloudflare Access authenticates every request before it reaches the tunnel.
+- nginx trusts `CF-Connecting-IP` from `127.0.0.1` only, limits requests and connections per client, hides its version and refuses hidden files.
+- Containers run without Linux capabilities and with `no-new-privileges`.
+- The scripts validate every host, port, name and image before they use it.
+- This repository holds no secret, host name, address or credential. Keep them in `.env` or on the server.
+
+Read [SECURITY.md](SECURITY.md) to report a vulnerability.
