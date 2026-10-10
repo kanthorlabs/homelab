@@ -10,6 +10,7 @@ host=$(homelab_host) || exit 1
 port=$(homelab_port) || exit 1
 site=/etc/nginx/sites-available/homelab
 enabled=/etc/nginx/sites-enabled/homelab
+default_site=/etc/nginx/sites-enabled/default
 template="$ROOT/nginx/site.conf"
 page="$ROOT/www/index.html"
 webroot=/var/www/homelab
@@ -34,6 +35,8 @@ sed -e "s/@HOST@/$host/" -e "s/@HOMELAB_PORT@/$port/" \
 
 had_link=0
 sudo test -L "$enabled" && had_link=1
+had_default=0
+sudo test -L "$default_site" && had_default=1
 
 restore() {
 	if [ -f "$backup" ]; then
@@ -42,6 +45,7 @@ restore() {
 		sudo rm -f "$site"
 	fi
 	[ "$had_link" = 1 ] || sudo rm -f "$enabled"
+	[ "$had_default" = 0 ] || sudo ln -sfn /etc/nginx/sites-available/default "$default_site"
 }
 
 if sudo test -f "$site"; then
@@ -55,6 +59,10 @@ sudo install -o root -g root -m 644 "$page" "$webroot/index.html" || die "cannot
 log "installing $site for $host"
 sudo install -o root -g root -m 644 "$rendered" "$site" || die "cannot install $site"
 sudo ln -sfn "$site" "$enabled" || die "cannot enable $site"
+if [ "$had_default" = 1 ]; then
+	log "disabling the default site that listens on the local network"
+	sudo rm -f "$default_site" || die "cannot remove $default_site"
+fi
 if ! sudo nginx -t; then
 	restore
 	die "nginx -t failed. The previous site is back. Fix the reported error, then rerun"
