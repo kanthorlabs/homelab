@@ -5,28 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
 <link rel="icon" href="data:,">
 <title>Chợ nổi Homelab</title>
 <style>
 :root {
-  --ink: #f7ead2;
-  --muted: #d8c6a8;
+  --ink: #f4f1e8;
+  --muted: #c9cfda;
+  --panel: rgba(36, 44, 62, 0.86);
+  --panel-solid: rgba(30, 37, 52, 0.95);
+  --edge: rgba(255, 255, 255, 0.08);
   --gold: #ffd98a;
-  --edge: #f6b26b;
-  --panel: rgba(29, 22, 38, 0.8);
-  --panel-solid: rgba(29, 22, 38, 0.94);
-  --up: #5fd35f;
-  --degraded: #f2d14b;
-  --down: #e5484d;
-  --unknown: #9a948a;
+  --up: #3fd36b;
+  --degraded: #f2a93b;
+  --down: #ef4b4b;
+  --unknown: #9aa3b2;
+  --title: #1f2a3c;
+  --subtitle: #34445e;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
 body {
-  background: #3a2a5c;
+  background: #8fb8e0;
   color: var(--ink);
-  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace;
 }
 canvas {
   position: fixed;
@@ -35,52 +37,77 @@ canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
-.panel {
+.title {
   position: fixed;
-  left: 16px;
-  max-width: calc(100vw - 32px);
-  padding: 8px 12px;
-  background: var(--panel);
-  border: 2px solid var(--edge);
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+  left: 20px;
+  top: 16px;
+  max-width: min(560px, calc(100vw - 40px));
+  color: var(--title);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
-.hud { top: 16px; }
-.hud h1 { margin: 0; font-size: 14px; letter-spacing: 0.04em; color: var(--gold); }
-.hud > p { margin: 2px 0 6px; color: var(--muted); font-size: 12px; }
-.roster ul { list-style: none; margin: 0; padding: 0; }
-.roster button {
-  all: unset;
-  cursor: pointer;
+.title h1 {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
-  padding: 2px 0;
+  margin: 0;
+  font-size: clamp(20px, 3.2vw, 34px);
+  letter-spacing: 0.02em;
 }
-.roster button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.roster .state { color: var(--muted); }
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-}
-.legend span { display: inline-flex; gap: 5px; align-items: center; }
-.dot { display: inline-block; width: 8px; height: 8px; background: var(--unknown); }
+.title p { margin: 6px 0 0 30px; color: var(--subtitle); font-size: clamp(12px, 1.5vw, 16px); }
+.title .status { margin-top: 4px; font-size: clamp(11px, 1.2vw, 13px); }
+.dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--unknown); }
+.title h1 .dot { width: 16px; height: 16px; }
 .up { background: var(--up); }
 .degraded { background: var(--degraded); }
 .down { background: var(--down); }
+.legend {
+  position: fixed;
+  right: 20px;
+  top: 16px;
+  margin: 0;
+  padding: 10px 14px;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+.legend li { display: flex; gap: 10px; align-items: center; padding: 2px 0; }
 .tags { position: fixed; inset: 0; pointer-events: none; }
 .tag {
   position: absolute;
   transform: translate(-50%, -100%);
-  padding: 0 6px;
-  background: var(--panel);
-  border: 1px solid currentColor;
-  font-size: 11px;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0 8px;
+  align-items: center;
+  padding: 4px 10px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
   white-space: nowrap;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 5px;
+  cursor: pointer;
+  pointer-events: auto;
 }
+.tag .dot { grid-row: span 2; }
+.tag small { color: var(--muted); font-size: 11px; }
+.tag:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.board {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #f1e2c4;
+  text-align: center;
+  line-height: 1.25;
+  pointer-events: none;
+}
+.board[hidden] { display: none; }
+.board hr { width: 22%; margin: 4px 0; border: 0; border-top: 2px solid currentColor; }
 .tip {
   position: fixed;
   z-index: 3;
@@ -88,8 +115,9 @@ canvas {
   max-width: min(300px, calc(100vw - 32px));
   padding: 10px 12px;
   background: var(--panel-solid);
-  border: 2px solid var(--edge);
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 .tip strong { color: var(--gold); }
 .tip dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 6px 0 0; }
@@ -97,28 +125,36 @@ canvas {
 .tip dd { margin: 0; }
 .tip p { margin: 6px 0 0; }
 .tip a { color: var(--gold); }
-noscript { position: fixed; inset: auto 16px 16px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+noscript { position: fixed; left: 20px; bottom: 20px; padding: 10px; background: var(--panel); }
+@media (max-width: 640px) {
+  .legend { top: auto; bottom: 16px; right: 16px; padding: 6px 10px; font-size: 11px; }
+  .title { left: 16px; }
+}
 </style>
 </head>
 <body>
 <canvas id="scene" aria-hidden="true"></canvas>
-<div id="tags" class="tags" aria-hidden="true"></div>
-<header class="panel hud">
-<h1>Homelab</h1>
-<p><span id="summary" aria-live="polite">The market opens at sunrise.</span> <span id="ago"></span></p>
-<section class="roster" aria-label="Services">
-<ul id="roster"></ul>
-<p id="machine" class="legend"></p>
-<p class="legend"><span><i class="dot up"></i>trading</span><span><i class="dot degraded"></i>slow trade</span><span><i class="dot down"></i>closed</span></p>
-</section>
+<header class="title">
+<h1><i id="overall" class="dot"></i>System Health</h1>
+<p>Like a floating market, every service keeps the journey going.</p>
+<p class="status"><span id="summary" aria-live="polite">The market opens at sunrise.</span> <span id="ago"></span></p>
+<p id="machine" class="sr-only"></p>
 </header>
+<ul class="legend" aria-label="Legend">
+<li><i class="dot up"></i>Healthy</li>
+<li><i class="dot degraded"></i>Warning</li>
+<li><i class="dot down"></i>Down</li>
+</ul>
+<div id="board" class="board" aria-hidden="true"><span>Chợ Nổi</span><hr><span>Dịch Vụ</span><span>Luôn Chạy</span><span>:)</span></div>
+<div id="tags" class="tags" role="list" aria-label="Services"></div>
 <div id="tip" class="tip" role="tooltip" hidden></div>
-<noscript class="panel">The market needs JavaScript to open.</noscript>
+<noscript>The market needs JavaScript to open.</noscript>
 <script>
 "use strict";
 
 const SERVICES = [
-  { name: "kanthord", path: "/s/kanthord/api/liveness", open: "/s/kanthord/", goods: "pineapple" },
+  { name: "kanthord", path: "/s/kanthord/api/liveness", open: "/s/kanthord/", goods: "greens" },
 ];
 const STATS_PATH = "/stats.json";
 
@@ -127,40 +163,30 @@ const STATS_EVERY_MS = 60000;
 const STATS_STALE_MS = 180000;
 const TIMEOUT_MS = 5000;
 const SLOW_MS = 1500;
-const BASE = 225;
-const BANK = 1.75;
-const BRIDGE_Z = 10;
-const HULL = 0.26;
-const POLE_HEIGHT = 1.05;
-const BOAT_LEN = 0.92;
-const SAMPAN_Z = 4.4;
+const BASE = 280;
 
-const LABEL = { up: "Trading", degraded: "Slow trade", down: "Closed", unknown: "Opening" };
-const MEANING = { up: "healthy", degraded: "degraded", down: "down", unknown: "no check yet" };
-const LANTERN = { up: "#5fd35f", degraded: "#f2d14b", down: "#e5484d", unknown: "#9a948a" };
+const SLOTS = [[0.5, 0.48], [0.3, 0.12], [0.52, 0.1], [0.72, 0.36], [0.38, 0.72], [0.62, 0.78], [0.8, 0.12], [0.3, 0.42], [0.66, 0.56], [0.48, 0.3]];
+const LABEL = { up: "Healthy", degraded: "Warning", down: "Down", unknown: "Checking" };
+const STATUS = { up: "#3fd36b", degraded: "#f2a93b", down: "#ef4b4b", unknown: "#9aa3b2" };
 const GOODS = {
-  pineapple: ["#d9a520", "#3f8a45"],
-  watermelon: ["#2f7a3a", "#6fb85a"],
-  coconut: ["#5a8a3a", "#86b04e"],
-  pumpkin: ["#d9772a", "#f0a050"],
-  mango: ["#e8c040", "#f6dc7a"],
-  dragonfruit: ["#d6336c", "#5aa04a"],
-  banana: ["#e8d04a", "#8aa83a"],
+  greens: ["#6ab04a", "#4f9a3a", "#8ccf5a", "#3f7a2f"],
+  oranges: ["#f0a020", "#f6c040", "#e07a18", "#6ab04a"],
+  pineapple: ["#e0a820", "#c88a18", "#f0c040", "#4f8a3a"],
+  dragonfruit: ["#e0407a", "#f070a0", "#c02a5a", "#6ab04a"],
+  flowers: ["#f070b0", "#e04a8a", "#fbe0ee", "#6ab04a"],
+  mixed: ["#f0a020", "#6ab04a", "#e0407a", "#f6c040"],
 };
 const QUIPS = {
-  pineapple: "Sells pineapples. Not to be confused with kanthord.",
-  watermelon: "Sells watermelons. Ten thousand đồng each, no refunds.",
-  coconut: "Sells coconuts. Coconut water has 100% uptime.",
-  pumpkin: "Sells pumpkins. Pumpkins answer no pings.",
-  mango: "Sells mangoes. Mangoes are eventually consistent.",
+  greens: "Sells pomelos and limes. Freshly picked, never cached.",
+  oranges: "Sells oranges. Zero dependencies, all vitamins.",
+  pineapple: "Sells pineapples. Spiky outside, healthy inside.",
   dragonfruit: "Sells thanh long. No SLA, but very pink.",
-  banana: "Sells bananas. Bananas scale horizontally.",
+  flowers: "Sells flowers for Tết. Purely decorative, like this boat.",
+  mixed: "Sells a little of everything. A monolith of fruit.",
 };
-const PAINT = ["#2f5d6b", "#8a2f2f", "#2f6b46", "#3a4f8a", "#7a5a2a"];
-const SHIRT = ["#3a5fa0", "#c04a3a", "#e6e0cf", "#5a7a3a", "#8a4a8a"];
-const SKY = ["#3a2a5c", "#5b3767", "#8c4a6c", "#c4606a", "#e8836a", "#f6ac6b", "#fbd08a"];
-const WATER = ["#e0a068", "#b8805c", "#957052", "#7a6249", "#64553f", "#544736"];
-const LAND = ["#4a4a34", "#3f4430", "#343c2a", "#2b3324"];
+const SHIRTS = ["#2f4a8a", "#2a3f74", "#3a5aa0", "#24365e"];
+const SKY = ["#5f98d6", "#74a8de", "#8cb8e4", "#a6c6e6", "#c8d4dc", "#ecd8b4", "#f8dca4"];
+const WATER = ["#b8cfd8", "#8fbcd8", "#62a2cf", "#4b8fc4", "#3f80b8", "#356fa6"];
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 
 const BIG_FONT = {
@@ -214,28 +240,28 @@ const tagLayer = document.getElementById("tags");
 const tip = document.getElementById("tip");
 const summary = document.getElementById("summary");
 const agoText = document.getElementById("ago");
-const roster = document.getElementById("roster");
+const overall = document.getElementById("overall");
 const machine = document.getElementById("machine");
+const boardText = document.getElementById("board");
 const motion = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1;
 
 const health = SERVICES.map(() => ({ state: "unknown", checks: 0, healthy: 0, latency: null, last: null, note: "" }));
-const stats = { cpu: null, ram: null, disk: null, updated: null, fetched: null, note: "No reading yet." };
+const stats = { cpu: null, ram: null, disk: null, updated: null, note: "No reading yet." };
 
 let W = 0;
 let H = 0;
 let scale = 1;
+let unit = 1;
 let hy = 0;
-let cx = 0;
-let k = 1;
 let sunX = 0;
+let sunY = 0;
 let backdrop = null;
+let foreground = null;
 let signBox = null;
+let lantern = null;
+let statsBoard = null;
+let clouds = [];
 let boats = [];
-let palms = [];
-let houses = [];
-let sampan = null;
-let billboard = null;
-let travel = 0;
 let hovered = null;
 let pinned = null;
 let lastTipAt = 0;
@@ -267,8 +293,7 @@ function clamp(v, lo, hi) {
 function dithered(palette, t, x, y) {
   const pos = clamp(t, 0, 0.9999) * (palette.length - 1);
   const low = Math.floor(pos);
-  const threshold = BAYER[(y & 3) * 4 + (x & 3)] / 16;
-  return palette[pos - low > threshold ? low + 1 : low];
+  return palette[pos - low > BAYER[(y & 3) * 4 + (x & 3)] / 16 ? low + 1 : low];
 }
 
 function rect(g, x, y, w, h, color) {
@@ -290,17 +315,13 @@ function line(g, x0, y0, x1, y1, color, width = 1) {
   }
 }
 
-function sx(X, z) {
-  return cx + (X * k) / z;
-}
-
-function sy(h, z) {
-  return hy + ((1 - h) * k) / z;
-}
-
-function zAtColumn(X, x) {
-  const dx = x + 0.5 - cx;
-  return dx === 0 ? Infinity : (X * k) / dx;
+function disc(g, x, y, r, color, light) {
+  const rr = Math.max(0.6, r);
+  for (let dy = -Math.ceil(rr); dy <= Math.ceil(rr); dy++) {
+    for (let dx = -Math.ceil(rr); dx <= Math.ceil(rr); dx++) {
+      if (dx * dx + dy * dy <= rr * rr + 0.3) dot(g, x + dx, y + dy, light && dx < 0 && dy < 0 ? light : color);
+    }
+  }
 }
 
 function glyphText(g, font, text, x, y, color) {
@@ -312,7 +333,6 @@ function glyphText(g, font, text, x, y, color) {
     });
     pen += rows[0].length + 1;
   }
-  return pen - x - 1;
 }
 
 function signWidth() {
@@ -336,560 +356,604 @@ function drawSignText(g, x, y, color) {
   }
 }
 
+function leftEdge(x) {
+  const bx = W * 0.42;
+  return hy + 1 + (H - hy) * 0.07 * (1 - x / bx);
+}
+
+function rightEdge(x) {
+  const cx = W * 0.6;
+  return hy + 1 + (H - hy) * 0.12 * ((x - cx) / (W - cx));
+}
+
+function drawPalm(g, x, base, size, seed) {
+  const height = Math.round(size * 1.6);
+  const lean = (hash(seed) - 0.5) * size * 0.5;
+  for (let i = 0; i <= height; i++) {
+    const u = i / height;
+    rect(g, x + lean * u * u, base - i, Math.max(1, size * 0.08), 1, i % 3 ? "#7a5a3a" : "#5e4630");
+  }
+  const tx = x + lean;
+  const ty = base - height;
+  for (let f = 0; f < 7; f++) {
+    const angle = (f / 7) * Math.PI * 2 + seed;
+    const len = size * (0.7 + 0.3 * hash(seed + f));
+    const n = Math.max(3, Math.ceil(len));
+    for (let j = 1; j <= n; j++) {
+      const u = j / n;
+      const fx = tx + Math.cos(angle) * len * u;
+      const fy = ty + (Math.sin(angle) * 0.35 - 0.25) * len * u + len * 0.5 * u * u;
+      dot(g, fx, fy, j % 3 === 0 ? "#6aa848" : "#3f7a35");
+      if (j % 2 === 0) dot(g, fx, fy + 1, "#2f6a2c");
+    }
+  }
+}
+
+function drawHouse(g, x, base, size, seed) {
+  const w = Math.round(size * 1.6);
+  const h = Math.round(size * 0.7);
+  const wall = hash(seed) > 0.5 ? "#e8e0d0" : "#a8bcd2";
+  rect(g, x, base - h, w, h, wall);
+  rect(g, x, base - h, w, 1, "#c8c0b0");
+  for (let wx = x + 2; wx < x + w - 2; wx += Math.max(3, Math.round(size * 0.4))) rect(g, wx, base - h + Math.round(h * 0.35), Math.max(1, size * 0.15), Math.max(1, size * 0.2), "#5a6a80");
+  const roof = hash(seed + 1) > 0.5 ? "#b0603a" : "#8a5038";
+  const rh = Math.max(2, Math.round(size * 0.45));
+  for (let r = 0; r < rh; r++) rect(g, x - 1 + r * 0.6, base - h - rh + r, w + 2 - r * 1.2, 1, r === rh - 1 ? "#6a3a28" : roof);
+  for (let r = 0; r < rh; r++) rect(g, x + w * 0.2 + r, base - h - rh - r * 0.5 + rh * 0.5, w * 0.6 - r * 2, 1, roof);
+  rect(g, x + 1, base, 1, 2, "#4a3a2a");
+  rect(g, x + w - 2, base, 1, 2, "#4a3a2a");
+}
+
 function paintBackdrop() {
   const layer = document.createElement("canvas");
   layer.width = W;
   layer.height = H;
   const g = layer.getContext("2d");
-  const rand = mulberry32(7);
+  const rand = mulberry32(11);
 
   for (let y = 0; y < hy; y++) {
-    for (let x = 0; x < W; x++) dot(g, x, y, dithered(SKY, y / hy, x, y));
+    for (let x = 0; x < W; x++) dot(g, x, y, dithered(SKY, Math.pow(y / hy, 1.25), x, y));
   }
-
-  const s = k / BRIDGE_Z;
-  const deckTop = Math.round(sy(2.05, BRIDGE_Z));
-  const deckBottom = Math.round(sy(1.8, BRIDGE_Z));
-  const railTop = Math.round(sy(2.22, BRIDGE_Z));
-  const water = Math.round(sy(0, BRIDGE_Z));
-  const sunY = deckTop - 3;
-  for (let y = sunY - 48; y <= sunY + 48; y++) {
-    for (let x = sunX - 64; x <= sunX + 64; x++) {
-      if (y < 0 || y >= hy) continue;
-      const d = Math.hypot((x - sunX) * 0.75, y - sunY);
-      if (d <= 10) dot(g, x, y, "#fff4cf");
-      else if (d <= 12) dot(g, x, y, "#ffe3a3");
-      else if (d <= 48 && BAYER[(y & 3) * 4 + (x & 3)] / 16 > (d - 12) / 36 + 0.2) dot(g, x, y, d < 26 ? "#fcd28c" : "#f8b878");
+  const halo = Math.round(70 * unit);
+  for (let y = sunY - halo; y < hy; y++) {
+    for (let x = sunX - halo * 2; x <= sunX + halo * 2; x++) {
+      if (y < 0 || x < 0 || x >= W) continue;
+      const d = Math.hypot((x - sunX) * 0.55, y - sunY);
+      const r = 7 * unit + 3;
+      const core = Math.hypot(x - sunX, y - sunY);
+      if (core <= r) dot(g, x, y, "#fff6d0");
+      else if (core <= r + 2) dot(g, x, y, "#ffe9a8");
+      else if (d < halo && BAYER[(y & 3) * 4 + (x & 3)] / 16 > d / halo + 0.25) dot(g, x, y, d < halo * 0.4 ? "#fbe2a0" : "#f6d8a8");
     }
-  }
-
-  let h = 3;
-  for (let x = 0; x < W; x++) {
-    h = clamp(h + (rand() - 0.5) * 1.4, 1, 6);
-    for (let y = hy - Math.round(h); y < hy; y++) dot(g, x, y, y === hy - Math.round(h) ? "#8a5a6a" : "#6a4660");
   }
 
   for (let y = hy; y < H; y++) {
-    for (let x = 0; x < W; x++) dot(g, x, y, dithered(WATER, Math.pow((y - hy) / (H - hy), 0.7), x, y));
+    for (let x = 0; x < W; x++) dot(g, x, y, dithered(WATER, Math.pow((y - hy) / (H - hy), 0.55), x, y));
   }
 
-  for (let y = hy; y < H; y++) {
-    const dy = y - hy;
-    const edge = BANK * dy;
-    const mud = 1 + dy / 30;
-    for (let x = 0; x < W; x++) {
-      const off = Math.abs(x + 0.5 - cx);
-      if (off < edge) continue;
-      const color = off < edge + mud ? "#5c4a33" : dithered(LAND, Math.min(1, dy / (H - hy) + (off - edge) / W), x, y);
-      dot(g, x, y, color);
-    }
+  const deckTop = Math.round(hy - 8 * unit - 4);
+  const deckBottom = deckTop + Math.max(2, Math.round(2 * unit + 1));
+  const bridgeA = Math.round(W * 0.2);
+  const bridgeB = Math.round(W * 0.88);
+  const pierStep = Math.max(10, Math.round(22 * unit));
+  for (let x = bridgeA + 4; x < bridgeB - 2; x += pierStep) {
+    rect(g, x, deckBottom, Math.max(1, Math.round(unit * 2)), hy + 2 - deckBottom, "#8a8ea8");
+    g.globalAlpha = 0.3;
+    rect(g, x, hy + 2, Math.max(1, Math.round(unit * 2)), Math.round((hy - deckBottom) * 0.7), "#5a6e8e");
+    g.globalAlpha = 1;
   }
-
-  const piers = [];
-  for (let X = 0.75; (X * k) / BRIDGE_Z < W; X += 3.1) piers.push(X, -X);
-  const pierW = Math.max(2, Math.round(s * 0.3));
-
-  g.globalAlpha = 0.32;
-  for (let y = deckTop; y <= deckBottom; y++) {
-    const ry = 2 * water - y;
-    if (ry >= H) continue;
-    for (let x = 0; x < W; x++) if (hash(x * 3.1 + ry * 7.7) > 0.3) dot(g, x, ry, "#2a2233");
-  }
-  for (const X of piers) {
-    const px = Math.round(sx(X, BRIDGE_Z) - pierW / 2);
-    for (let ry = water; ry < Math.min(H, water + (water - deckBottom) * 0.8); ry++) {
-      if (hash(px + ry * 1.3) > 0.25) rect(g, px + Math.round((hash(ry) - 0.5) * 2), ry, pierW, 1, "#2a2233");
-    }
-  }
+  rect(g, bridgeA, deckTop, bridgeB - bridgeA, deckBottom - deckTop, "#8e92ac");
+  rect(g, bridgeA, deckTop, bridgeB - bridgeA, 1, "#fbe0b0");
+  rect(g, bridgeA, deckBottom, bridgeB - bridgeA, 1, "#6a6e88");
+  rect(g, bridgeA, deckTop - 3, bridgeB - bridgeA, 1, "#9a9eb6");
+  for (let x = bridgeA; x < bridgeB; x += 3) rect(g, x, deckTop - 3, 1, 3, "#9a9eb6");
+  g.globalAlpha = 0.25;
+  rect(g, bridgeA, 2 * hy - deckBottom + 2, bridgeB - bridgeA, deckBottom - deckTop, "#5a6e8e");
   g.globalAlpha = 1;
-
-  for (const X of piers) {
-    const px = Math.round(sx(X, BRIDGE_Z) - pierW / 2);
-    rect(g, px, deckBottom, pierW, water - deckBottom + 1, "#463a52");
-    rect(g, px + pierW - 1, deckBottom, 1, water - deckBottom + 1, "#c47a6a");
-  }
-  rect(g, 0, deckTop, W, deckBottom - deckTop + 1, "#3e3249");
-  rect(g, 0, deckTop, W, 1, "#f1a37c");
-  rect(g, 0, deckBottom, W, 1, "#2a2233");
-  rect(g, 0, railTop, W, 1, "#5a4a66");
-  for (let x = 0; x < W; x += 3) rect(g, x, railTop, 1, deckTop - railTop, "#5a4a66");
-  for (let x = Math.round(W * 0.06); x < W; x += Math.max(24, Math.round(W / 9))) {
-    if (Math.abs(x - cx) < 60) continue;
-    rect(g, x, railTop - 9, 1, 9, "#5a4a66");
-    rect(g, x, railTop - 9, 3, 1, "#5a4a66");
-    rect(g, x + 2, railTop - 8, 1, 1, "#ffe3a3");
-  }
 
   const textW = signWidth();
   const boardW = textW + 12;
-  const boardH = 7 + 6 + 2 + 6;
-  const bx = Math.round(cx - boardW / 2);
-  const by = railTop - 6 - boardH;
-  for (const off of [10, boardW - 12]) rect(g, bx + off, by + boardH, 2, deckTop - by - boardH, "#2a2233");
-  rect(g, bx + 2, by + 2, boardW, boardH, "rgba(20, 10, 20, 0.45)");
-  rect(g, bx, by, boardW, boardH, "#f2d3a0");
-  rect(g, bx + 1, by + 1, boardW - 2, boardH - 2, "#8e2a2a");
-  rect(g, bx + 1, by + boardH - 3, boardW - 2, 2, "#6e1f22");
-  drawSignText(g, bx + 6, by + 7, "#4a1414");
-  drawSignText(g, bx + 6, by + 6, "#ffd34d");
-  signBox = { x: bx, y: by, w: boardW, h: boardH };
+  const boardH = 21;
+  const signX = Math.round(clamp(W * 0.42 - boardW / 2, 4, W - boardW - 4));
+  const signY = deckTop - 7 - boardH;
+  for (const off of [10, boardW - 12]) rect(g, signX + off, signY + boardH, 2, deckTop - signY - boardH - 3, "#5a5e78");
+  rect(g, signX + 2, signY + 2, boardW, boardH, "rgba(30, 30, 60, 0.3)");
+  rect(g, signX, signY, boardW, boardH, "#f2d3a0");
+  rect(g, signX + 1, signY + 1, boardW - 2, boardH - 2, "#a8302c");
+  rect(g, signX + 1, signY + boardH - 3, boardW - 2, 2, "#80221f");
+  drawSignText(g, signX + 6, signY + 7, "#5a1414");
+  drawSignText(g, signX + 6, signY + 6, "#ffd34d");
+  signBox = { x: signX, y: signY, w: boardW, h: boardH };
+
+  const leftEnd = W * 0.42;
+  for (let x = 0; x < leftEnd; x++) {
+    const edge = Math.round(leftEdge(x));
+    for (let y = hy - 3; y <= edge; y++) dot(g, x, y, y >= edge - 1 ? "#7a6a48" : dithered(["#6a9a48", "#5a8a3e", "#4a7a36"], (y - hy + 3) / (edge - hy + 4), x, y));
+  }
+  const rightStart = W * 0.6;
+  for (let x = Math.floor(rightStart); x < W; x++) {
+    const edge = Math.round(rightEdge(x));
+    for (let y = hy - 3; y <= edge; y++) dot(g, x, y, y >= edge - 1 ? "#7a6a48" : dithered(["#6a9a48", "#5a8a3e", "#4a7a36"], (y - hy + 3) / (edge - hy + 4), x, y));
+  }
+
+  const scenery = [];
+  for (let x = 2; x < leftEnd - 6; x += 6 + rand() * 14) scenery.push({ x, base: leftEdge(x) - 2, size: (5 + 6 * (1 - x / leftEnd)) * unit + 2, kind: rand() < 0.45 ? "house" : "palm", seed: rand() * 100 });
+  for (let x = rightStart + 4; x < W - 2; x += 6 + rand() * 14) scenery.push({ x, base: rightEdge(x) - 2, size: (5 + 8 * ((x - rightStart) / (W - rightStart))) * unit + 2, kind: rand() < 0.45 ? "house" : "palm", seed: rand() * 100 });
+  scenery.sort((a, b) => (a.kind === "palm") - (b.kind === "palm"));
+  for (const item of scenery) {
+    if (item.kind === "house") drawHouse(g, item.x, item.base, item.size, item.seed);
+    else drawPalm(g, item.x, item.base, item.size, item.seed);
+  }
 
   return layer;
 }
 
-function makeScene() {
-  const rand = mulberry32(31);
-  const goodsNames = Object.keys(GOODS);
-  boats = [];
-  for (const side of [-1, 1]) {
-    for (const row of [{ lateral: 1.12, start: 1.0, inner: true }, { lateral: 1.52, start: 1.5, inner: false }]) {
-      for (let z = row.start; z < BRIDGE_Z - 1.4; z += 1.0 + rand() * 0.12) {
-        const goods = goodsNames[Math.floor(rand() * goodsNames.length)];
-        boats.push({
-          kind: "boat",
-          side,
-          inner: row.inner,
-          lateral: row.lateral + rand() * 0.06,
-          z,
-          len: BOAT_LEN - rand() * 0.12,
-          goods,
-          quip: QUIPS[goods],
-          service: null,
-          paint: PAINT[Math.floor(rand() * PAINT.length)],
-          shirt: SHIRT[Math.floor(rand() * SHIRT.length)],
-          seed: rand() * 100,
-          box: null,
-        });
+function paintForeground() {
+  const layer = document.createElement("canvas");
+  layer.width = W;
+  layer.height = H;
+  const g = layer.getContext("2d");
+  const u = unit;
+
+  const roofX = Math.round(W * 0.19);
+  const roofA = Math.round(H * 0.38);
+  const roofB = Math.round(H * 0.5);
+  const thick = Math.round(H * 0.07);
+  const roofBottom = (x) => roofA + ((roofB - roofA) * x) / roofX + thick;
+  rect(g, 0, roofA, roofX * 0.82, H - roofA, "#2a1c14");
+  for (let y = roofA + thick + 8; y < H * 0.86; y += Math.round(14 * u + 4)) {
+    rect(g, 0, y, roofX * 0.8, 2, "#5a3a22");
+    for (let x = 3; x < roofX * 0.75; x += Math.round(9 * u + 3)) if (hash(x * 3 + y) > 0.4) disc(g, x, y - 2 * u, 1.4 * u, ["#6ab04a", "#e0a820", "#c0603a"][Math.floor(hash(x + y) * 3)]);
+  }
+  for (let x = 0; x <= roofX; x++) {
+    const top = Math.round(roofA + ((roofB - roofA) * x) / roofX);
+    for (let y = top; y < top + thick; y++) {
+      const strand = (x + (y - top) * 2) % 5;
+      let color = strand === 0 ? "#6e4520" : strand < 3 ? "#9a6a34" : "#b8844a";
+      if (y >= top + thick - 2) color = "#4a2e18";
+      if (y === top) color = "#d0a060";
+      dot(g, x, y, color);
+    }
+  }
+  const postW = Math.max(2, Math.round(3 * u));
+  for (const px of [Math.round(W * 0.012), Math.round(W * 0.15)]) rect(g, px, roofBottom(px), postW, H - roofBottom(px), "#5a3a20");
+  const lx = Math.round(W * 0.165);
+  const ly = Math.round(roofBottom(lx) + 4 * u);
+  rect(g, lx, roofBottom(lx), 1, ly - roofBottom(lx), "#3a2414");
+  rect(g, lx - 3 * u, ly, 7 * u, 10 * u, "#3a2414");
+  rect(g, lx - 2 * u, ly + 1 * u, 5 * u, 8 * u, "#f0b040");
+  lantern = { x: lx + 0.5 * u, y: ly + 5 * u, r: 9 * u };
+
+  const bx = Math.round(W * 0.05);
+  const by = Math.round(H * 0.62);
+  const bw = Math.round(W * 0.115);
+  const bh = Math.round(H * 0.22);
+  rect(g, bx + 3, by + 3, bw, bh, "rgba(0, 0, 0, 0.35)");
+  rect(g, bx, by, bw, bh, "#3a2414");
+  rect(g, bx + 2, by + 2, bw - 4, bh - 4, "#5e3e28");
+  rect(g, bx + 2, by + 2, bw - 4, 1, "#7a5a3c");
+  rect(g, bx + bw * 0.45, by + bh, postW, H - by - bh, "#4a2e18");
+  boardText.dataset.box = JSON.stringify([bx + 2, by + 2, bw - 4, bh - 4]);
+
+  for (const [px, py, size] of [[0.2, 0.66, 14], [0.02, 0.6, 10], [0.24, 0.82, 12]]) {
+    const cx = W * px;
+    const cy = H * py;
+    for (let f = 0; f < 9; f++) {
+      const angle = Math.PI * (1.05 + (f / 8) * 0.9);
+      const len = size * u * (0.7 + 0.3 * hash(f + px * 10));
+      line(g, cx, cy, cx + Math.cos(angle) * len, cy + Math.sin(angle) * len, f % 2 ? "#3f8a3a" : "#5aa84a", Math.max(1, Math.round(u * 1.5)));
+    }
+  }
+
+  const deckY = Math.round(H * 0.86);
+  for (let x = 0; x < W * 0.4; x++) {
+    const top = Math.round(deckY + (x / (W * 0.4)) * H * 0.04);
+    for (let y = top; y < H; y++) {
+      let color = (y - top) % Math.round(5 * u + 2) === 0 ? "#5a3820" : "#7a4e2c";
+      if (y - top < 2) color = "#c8945a";
+      dot(g, x, y, color);
+    }
+  }
+  const baskets = [[0.1, "#6ab04a", "#8ccf5a"], [0.22, "#f0a020", "#f6c040"]];
+  for (const [px, fruit, light] of baskets) {
+    const cx = Math.round(W * px);
+    const cy = Math.round(deckY + H * 0.03);
+    const rw = Math.round(W * 0.045);
+    const rh = Math.round(H * 0.045);
+    for (let i = 0; i < 26; i++) disc(g, cx + (hash(i + px * 7) - 0.5) * rw * 1.5, cy - rh * 0.4 - hash(i * 3 + px) * rh * 0.8, 2.4 * u, fruit, light);
+    for (let y = 0; y < rh; y++) {
+      const half = rw * (1 - (y / rh) * 0.25);
+      for (let x = -half; x <= half; x++) dot(g, cx + x, cy + y, (Math.round(x) + y) % 3 === 0 ? "#7a5228" : "#b0844a");
+    }
+  }
+
+  const dockX = Math.round(W * 0.9);
+  const dockRoof = Math.round(H * 0.6);
+  for (let x = dockX - Math.round(W * 0.03); x < W; x++) {
+    const top = Math.round(dockRoof - ((x - dockX) / (W - dockX)) * H * 0.04);
+    for (let y = top; y < top + Math.round(H * 0.05); y++) dot(g, x, y, y === top ? "#c89a5a" : (x + y) % 4 === 0 ? "#6e4a28" : "#8a5e34");
+  }
+  for (const px of [dockX, W - 4]) rect(g, px, dockRoof + H * 0.04, postW, H, "#5a3a20");
+  const dockY = Math.round(H * 0.88);
+  for (let x = Math.round(W * 0.8); x < W; x++) {
+    for (let y = dockY; y < H; y++) dot(g, x, y, y - dockY < 2 ? "#c8945a" : (x % Math.round(7 * u + 3) === 0 ? "#4a2e18" : "#6e4626"));
+  }
+  const hbx = Math.round(W * 0.95);
+  const hby = Math.round(H * 0.72);
+  rect(g, hbx, dockRoof + H * 0.05, 1, hby - dockRoof - H * 0.05, "#3a2414");
+  for (let i = 0; i < 7; i++) line(g, hbx, hby, hbx + (i - 3) * 2.2 * u, hby - 5 * u - hash(i) * 4 * u, "#4f9a3a", Math.max(1, Math.round(u)));
+  for (let y = 0; y < 5 * u; y++) rect(g, hbx - 5 * u + y * 0.4, hby + y, 10 * u - y * 0.8, 1, y % 2 ? "#8a6034" : "#b0844a");
+  for (const [px, k] of [[0.86, 0], [0.9, 1]]) {
+    const cx = Math.round(W * px);
+    const cy = Math.round(dockY - 6 * u);
+    for (let r = 0; r < 7 * u; r++) rect(g, cx - 2 * u, cy + r, 4 * u, 1, r % 2 ? "#c88a18" : "#e0a820");
+    for (let i = 0; i < 4; i++) line(g, cx, cy, cx + (i - 1.5) * 1.5 * u, cy - 4 * u, "#4f8a3a");
+    if (k) rect(g, cx - 2 * u, cy + 2 * u, 1, 1, "#f0c040");
+  }
+
+  const sbW = 51;
+  const sbH = 27;
+  statsBoard = { x: Math.round(clamp(dockX - sbW - 6 * u, W * 0.6, W - sbW - 2)), y: Math.round(dockY - sbH - 10 * u), w: sbW, h: sbH };
+  for (const off of [8, sbW - 10]) rect(g, statsBoard.x + off, statsBoard.y + sbH, 2, dockY - statsBoard.y - sbH, "#4a2e18");
+
+  return layer;
+}
+
+function makeClouds() {
+  const rand = mulberry32(5);
+  clouds = Array.from({ length: 5 }, () => {
+    const w = Math.round((26 + rand() * 40) * unit);
+    const h = Math.max(4, Math.round(w * 0.28));
+    const sprite = document.createElement("canvas");
+    sprite.width = w;
+    sprite.height = h;
+    const g = sprite.getContext("2d");
+    for (let i = 0; i < 9; i++) {
+      const cx = w * (0.15 + rand() * 0.7);
+      const cy = h * (0.45 + rand() * 0.3);
+      const r = h * (0.3 + rand() * 0.25);
+      for (let y = Math.floor(cy - r); y <= cy + r; y++) {
+        for (let x = Math.floor(cx - r * 1.6); x <= cx + r * 1.6; x++) {
+          const d = Math.hypot((x - cx) / 1.6, y - cy);
+          if (d > r || y >= h) continue;
+          const shade = y > cy + r * 0.25 ? "#e8c8b8" : y < cy - r * 0.4 ? "#fffaf0" : "#f6ecdc";
+          dot(g, x, y, shade);
+        }
       }
     }
-  }
+    return { sprite, x: rand(), y: 0.52 + rand() * 0.3, speed: 0.6 + rand() * 1.2 };
+  });
+}
+
+function makeBoat(rand, opts) {
+  const goodsNames = Object.keys(GOODS);
+  const goods = opts.goods || goodsNames[Math.floor(rand() * goodsNames.length)];
+  const cargo = Array.from({ length: 16 }, () => ({ u: 0.46 + rand() * 0.38, h: rand(), c: Math.floor(rand() * 3), s: 0.8 + rand() * 0.4 }));
+  return {
+    service: null,
+    kind: "river",
+    dir: rand() < 0.5 ? -1 : 1,
+    seed: rand() * 100,
+    goods,
+    quip: QUIPS[goods],
+    cargo,
+    canopy: rand() < 0.3,
+    motor: rand() < 0.55,
+    shirt: SHIRTS[Math.floor(rand() * SHIRTS.length)],
+    box: null,
+    ...opts,
+  };
+}
+
+function makeScene() {
+  const rand = mulberry32(23);
+  boats = [];
+  const river = (v) => hy + (H * 0.9 - hy) * (0.14 + v * 0.86);
 
   SERVICES.forEach((svc, i) => {
-    const side = i % 2 === 0 ? -1 : 1;
-    const target = 2.6 + Math.floor(i / 2) * 1.0;
-    const free = boats.filter((b) => b.side === side && b.inner && b.service === null);
-    free.sort((a, b) => Math.abs(a.z - target) - Math.abs(b.z - target));
-    const boat = free[0];
-    boat.service = i;
-    boat.goods = svc.goods || boat.goods;
+    const [sx, sv] = SLOTS[i % SLOTS.length];
+    const v = clamp(sv + Math.floor(i / SLOTS.length) * 0.05, 0, 1);
+    boats.push(makeBoat(rand, { service: i, kind: "service", goods: svc.goods, fx: sx, v, y: river(v), len: Math.round((44 + 54 * v) * Math.max(unit, 0.75)) }));
   });
 
-  palms = [];
-  for (const side of [-1, 1]) {
-    for (let z = 0.9; z < BRIDGE_Z - 0.5; z += 0.6 + rand() * 0.9) {
-      palms.push({
-        kind: "palm",
-        side,
-        X: BANK + 0.35 + rand() * 1.5,
-        z,
-        h: 2.1 + rand() * 1.3,
-        lean: -side * (0.1 + rand() * 0.35),
-        seed: rand() * 100,
-      });
-    }
+  for (let i = 0; i < 11; i++) {
+    const far = i < 4;
+    const v = far ? rand() * 0.06 : 0.04 + rand() * 0.7;
+    boats.push(makeBoat(rand, { kind: "river", fx: rand(), v, y: river(v) - (far ? (H - hy) * 0.1 : 0), len: Math.round((far ? 12 : 18 + 24 * v) * unit + 4), speed: (1.5 + rand() * 3) * unit }));
   }
 
-  houses = [];
-  for (const side of [-1, 1]) {
-    for (const z of [2.2, 4.6, 7.0]) houses.push({ kind: "house", side, X: BANK + 0.3, z: z + rand() * 0.8, len: 0.9 + rand() * 0.4 });
+  const leftEnd = W * 0.42;
+  for (let i = 0; i < 12; i++) {
+    const x = leftEnd * (1 - (i + 0.5) / 12);
+    boats.push(makeBoat(rand, { kind: "moored", x, y: leftEdge(x) + 2, len: Math.round((8 + 7 * (1 - x / leftEnd)) * unit + 3), canopy: rand() < 0.2, motor: false }));
   }
-
-  sampan = { kind: "sampan", z: SAMPAN_Z, X: 0, dir: 1, seed: 3, box: null, quip: "Sells hủ tiếu. Breakfast for the market, not a service." };
-  billboard = { kind: "billboard", X: BANK + 0.4, z: 2.6, box: null };
+  const rightStart = W * 0.6;
+  for (let i = 0; i < 12; i++) {
+    const x = rightStart + ((W - rightStart) * (i + 0.5)) / 12;
+    boats.push(makeBoat(rand, { kind: "moored", x, y: rightEdge(x) + 2, len: Math.round((8 + 9 * ((x - rightStart) / (W - rightStart))) * unit + 3), canopy: rand() < 0.2, motor: false }));
+  }
+  for (const b of boats) if (b.fx !== undefined) b.x = b.fx * W;
 
   tagLayer.replaceChildren();
   for (const b of boats) {
     if (b.service === null) continue;
-    b.tag = document.createElement("div");
-    b.tag.className = "tag";
-    b.tag.textContent = SERVICES[b.service].name;
-    tagLayer.append(b.tag);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tag";
+    button.setAttribute("role", "listitem");
+    const mark = document.createElement("i");
+    mark.className = "dot";
+    const name = document.createElement("span");
+    name.textContent = SERVICES[b.service].name;
+    const latency = document.createElement("small");
+    latency.textContent = "…";
+    button.append(mark, name, latency);
+    button.addEventListener("click", () => {
+      pinned = b;
+      hovered = b;
+      const box = button.getBoundingClientRect();
+      showTip(b, box.left, box.bottom);
+    });
+    button.addEventListener("pointerenter", () => {
+      if (pinned) return;
+      hovered = b;
+      const box = button.getBoundingClientRect();
+      showTip(b, box.left, box.bottom);
+    });
+    button.addEventListener("pointerleave", () => {
+      if (!pinned) hideTip();
+    });
+    b.tag = { button, mark, latency };
+    tagLayer.append(button);
   }
 }
 
 function resize() {
-  scale = Math.max(1, Math.round(Math.min(innerWidth, innerHeight) / BASE));
+  scale = Math.max(innerWidth < 700 ? 2 : 1, Math.round(Math.min(innerWidth, innerHeight * 1.5) / (BASE * 1.6)));
   W = Math.ceil(innerWidth / scale);
   H = Math.ceil(innerHeight / scale);
   canvas.width = W;
   canvas.height = H;
   canvas.style.width = `${W * scale}px`;
   canvas.style.height = `${H * scale}px`;
-  hy = Math.round(H * 0.47);
-  cx = Math.round(W / 2);
-  k = Math.min(H - hy, W * 0.9);
-  sunX = Math.round(cx + Math.min(W * 0.26, 74));
+  unit = clamp(Math.min(W / 480, H / 300), 0.45, 1.6);
+  hy = Math.round(H * (W > H ? 0.31 : 0.28));
+  sunX = Math.round(W * 0.66);
+  sunY = Math.round(hy - 12 * unit - 6);
   backdrop = paintBackdrop();
-  if (boats.length === 0) makeScene();
-  billboard.z = Math.max(2.6, ((billboard.X + 0.25) * k) / Math.max(20, W - 34 - cx));
+  foreground = paintForeground();
+  makeClouds();
+  makeScene();
+  placeBoardText();
+  renderRoster();
+}
+
+function placeBoardText() {
+  const [x, y, w, h] = JSON.parse(boardText.dataset.box);
+  const cssW = w * scale;
+  boardText.hidden = cssW < 64;
+  boardText.style.left = `${x * scale}px`;
+  boardText.style.top = `${y * scale}px`;
+  boardText.style.width = `${cssW}px`;
+  boardText.style.height = `${h * scale}px`;
+  boardText.style.fontSize = `${Math.max(9, Math.round(cssW / 7.2))}px`;
 }
 
 function stateOf(b) {
   return b.service === null ? "up" : health[b.service].state;
 }
 
-function emptyBox() {
-  return { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
-}
-
-function grow(box, x0, y0, x1, y1) {
-  box.x0 = Math.min(box.x0, x0);
-  box.y0 = Math.min(box.y0, y0);
-  box.x1 = Math.max(box.x1, x1);
-  box.y1 = Math.max(box.y1, y1);
-}
-
 function drawZ(x, y, size, alpha) {
   ctx.globalAlpha = alpha;
-  rect(ctx, x, y, size * 3, size, "#f7ead2");
-  rect(ctx, x + size, y + size, size, size, "#f7ead2");
-  rect(ctx, x, y + size * 2, size * 3, size, "#f7ead2");
+  rect(ctx, x, y, size * 3, size, "#ffffff");
+  rect(ctx, x + size, y + size, size, size, "#ffffff");
+  rect(ctx, x, y + size * 2, size * 3, size, "#ffffff");
   ctx.globalAlpha = 1;
 }
 
-function drawVendor(x, deckY, s, shirt, sleeping, t) {
-  const bw = Math.max(2, Math.round(s * 0.07));
-  const bh = Math.max(2, Math.round(s * (sleeping ? 0.11 : 0.16)));
-  const hs = Math.max(1, Math.round(s * 0.05));
-  const hatW = Math.max(3, Math.round(s * 0.17));
-  const hatH = Math.max(1, Math.round(s * 0.05));
-  rect(ctx, x - bw / 2, deckY - bh, bw, bh, shirt);
-  rect(ctx, x - hs / 2, deckY - bh - hs, hs, hs, "#d9a066");
-  for (let r = 0; r < hatH; r++) {
-    const w = Math.max(1, Math.round((hatW * (r + 1)) / hatH));
-    rect(ctx, x - w / 2, deckY - bh - hs - hatH + r, w, 1, r === hatH - 1 ? "#c8b47a" : "#ead9a0");
-  }
-  if (!sleeping) return deckY - bh - hs - hatH;
-  const z = Math.max(1, Math.round(s * 0.02));
-  for (let i = 0; i < 3; i++) {
-    const phase = mod(t * 0.5 + i / 3, 1);
-    drawZ(x + hatW / 2 + i * z * 3, deckY - bh - hs - hatH - z * 4 - phase * s * 0.25, z, 1 - phase);
-  }
-  return deckY - bh - hs - hatH;
-}
-
-function drawFruit(x, y, size, goods) {
-  const [body, accent] = GOODS[goods];
-  rect(ctx, x - size / 2, y, size, size, body);
-  dot(ctx, x - size / 2, y, accent);
-}
-
 function drawBoat(b, t) {
-  const X = b.side * b.lateral;
-  const z0 = b.z - travel;
-  b.box = null;
-  if (z0 < 0.35) return;
-  const z1 = z0 + b.len;
   const state = stateOf(b);
-  const sink = state === "down" ? 0.06 : 0;
-  const rock = state === "degraded" ? 0.05 : 0.012;
-  const speed = state === "degraded" ? 2.2 : 1.1;
-  const lift = (u) => (Math.sin(t * speed + b.seed) * rock + Math.sin(t * speed * 0.7 + b.seed) * (u - 0.5) * rock) * motion - sink;
-  const xa = sx(X, z0);
-  const xb = sx(X, z1);
-  const from = Math.max(-1, Math.floor(Math.min(xa, xb)));
-  const to = Math.min(W, Math.ceil(Math.max(xa, xb)));
-  const box = emptyBox();
-
-  for (let x = from; x <= to; x++) {
-    const z = clamp(zAtColumn(X, x), z0, z1);
-    const u = (z - z0) / b.len;
-    const s = k / z;
-    const up = lift(u);
-    const water = Math.round(sy(0, z));
-    const end = Math.pow(Math.abs(2 * u - 1), 2.4);
-    const top = Math.round(sy(HULL + end * 0.16 + up, z));
-    const band = Math.max(1, Math.round(s * 0.025));
-    const plank = Math.max(3, Math.round(s * 0.06));
-    for (let y = top; y <= water; y++) {
-      const r = y - top;
-      let color = r % plank === 0 ? "#5a381f" : "#6b4426";
-      if (r === 0) color = "#c99a62";
-      else if (r <= band) color = b.paint;
-      else if (y >= water - Math.max(0, Math.round(s * 0.015))) color = "#3a2414";
-      dot(ctx, x, y, color);
+  const L = b.len;
+  const hh = Math.max(2, Math.round(L * 0.1));
+  let x = b.x;
+  let dir = b.dir;
+  if (b.kind === "service") {
+    const pace = state === "degraded" ? 0.06 : 0.11;
+    if (state !== "down") {
+      x = b.fx * W + Math.sin(t * pace * motion + b.seed) * L * 0.35;
+      dir = Math.cos(t * pace * motion + b.seed) >= 0 ? 1 : -1;
+      b.dir = dir;
+    } else {
+      x = b.fx * W + Math.sin(b.seed) * L * 0.35;
     }
-    const reflection = Math.max(1, Math.round(s * 0.07));
-    ctx.globalAlpha = 0.32;
-    for (let r = 1; r <= reflection; r++) dot(ctx, x + Math.round(Math.sin(t * 3 * motion + r + x * 0.3) * 0.6), water + r, "#2e2619");
-    ctx.globalAlpha = 1;
+  }
+  const rocking = state === "degraded" ? 1.6 : 0.5;
+  const bob = Math.sin(t * (state === "degraded" ? 2.3 : 1.3) + b.seed) * rocking * motion;
+  const y = Math.round(b.y + bob + (state === "down" ? hh * 0.3 : 0));
+  const x0 = Math.round(x - L / 2);
+  const col = (u) => (dir > 0 ? x0 + u * (L - 1) : x0 + (1 - u) * (L - 1));
+  const tops = [];
 
-    let roofTop = top;
-    if (u > 0.3 && u < 0.74) {
-      const v = (u - 0.52) / 0.22;
-      const arch = Math.sqrt(Math.max(0, 1 - v * v));
-      roofTop = Math.round(sy(HULL + up + 0.1 + 0.22 * arch, z));
-      for (let y = roofTop; y < top; y++) {
-        let color = x % 3 === 0 ? "#5a3c24" : "#73502f";
-        if (y === roofTop) color = "#b08a5c";
-        if (u < 0.33) color = "#2a1c12";
-        dot(ctx, x, y, color);
-      }
+  for (let i = 0; i < L; i++) {
+    const u = i / (L - 1);
+    const end = Math.pow(Math.abs(2 * u - 1), 2.6);
+    const top = Math.round(y - hh - end * hh * (u > 0.5 ? 1.1 : 0.6));
+    const bottom = Math.round(y + hh * 0.3 * (1 - end));
+    tops.push(top);
+    const px = Math.round(col(u));
+    for (let yy = top; yy <= bottom; yy++) {
+      const r = yy - top;
+      let color = "#8a5a30";
+      if (r === 0) color = "#e2b272";
+      else if (r === 1) color = "#4a2e1a";
+      else if (yy >= bottom - 1) color = "#5a3820";
+      else if (r === 2) color = "#a06a3a";
+      dot(ctx, px, yy, color);
     }
-    grow(box, x, roofTop, x + 1, water + 1);
-  }
-
-  const zEye = z0 + 0.05 * b.len;
-  const sEye = k / zEye;
-  const eye = Math.max(1, Math.round(sEye * 0.03));
-  const eyeY = sy(HULL + 0.1 + lift(0.05), zEye) + Math.max(1, Math.round(sEye * 0.025)) + 1;
-  rect(ctx, sx(X, zEye) - eye, eyeY - eye, eye * 2, eye, "#c0392b");
-  rect(ctx, sx(X, zEye) - eye, eyeY, eye * 2, eye, "#f2efe6");
-  rect(ctx, sx(X, zEye) + (b.side < 0 ? 0 : -eye), eyeY, eye, eye, "#111111");
-
-  const zH = z0 + 0.18 * b.len;
-  const sH = k / zH;
-  if (sH >= 12) {
-    const headTop = drawVendor(sx(X, zH), sy(HULL + lift(0.18), zH), sH, b.shirt, state === "down", t);
-    grow(box, sx(X, zH) - 4, headTop, sx(X, zH) + 4, headTop);
-  }
-
-  const zP = z0 + 0.84 * b.len;
-  const sP = k / zP;
-  const xP = Math.round(sx(X, zP));
-  const baseY = sy(HULL + lift(0.84), zP);
-  const topY = Math.round(sy(HULL + POLE_HEIGHT + lift(0.84), zP));
-  const pw = Math.max(1, Math.round(sP * 0.025));
-  rect(ctx, xP, topY, pw, baseY - topY, "#7a5a36");
-  const arm = Math.max(3, Math.round(sP * 0.32));
-  const armY = topY + Math.max(1, Math.round(sP * 0.06));
-  rect(ctx, xP - arm / 2, armY, arm + pw, 1, "#6a4a2c");
-  const fruit = Math.max(1, Math.round(sP * 0.075));
-  const swing = Math.round(Math.sin(t * 1.3 + b.seed) * motion * sP * 0.01);
-  for (const off of [-0.5, 0, 0.5]) {
-    const fx = xP + off * arm + pw / 2;
-    const string = Math.max(1, Math.round(sP * 0.05));
-    rect(ctx, fx, armY + 1, 1, string, "#3a2a1e");
-    drawFruit(fx + swing, armY + 1 + string, fruit, b.goods);
-  }
-  grow(box, xP - arm / 2, topY, xP + arm / 2 + 1, baseY);
-
-  if (b.service !== null) {
-    const lantern = LANTERN[state];
-    const ls = Math.max(2, Math.round(sP * 0.07));
-    const lx = xP + pw;
-    const ly = Math.round(baseY - sP * 0.5);
-    const pulse = state === "down" ? (Math.floor(t * 1.5) % 2 === 0 ? 0.55 : 0.12) : 0.3 + Math.sin(t * 3) * 0.1;
-    ctx.globalAlpha = pulse;
-    rect(ctx, lx - ls, ly - ls, ls * 3, ls * 3, lantern);
-    for (let r = 0; r < Math.max(3, sP * 0.2); r++) {
-      dot(ctx, lx + Math.round(Math.sin(t * 4 + r) * 0.6), sy(0, zP) + 1 + r, lantern);
+    ctx.globalAlpha = 0.28;
+    for (let r = 1; r <= Math.max(1, Math.round(hh * 1.2)); r++) {
+      dot(ctx, px + Math.round(Math.sin(t * 2.5 * motion + r + i * 0.35) * 0.8), bottom + r, r % 2 ? "#2a4e78" : "#7a5a3a");
     }
     ctx.globalAlpha = 1;
-    rect(ctx, lx, ly - 1, ls, 1, "#3a2a1e");
-    rect(ctx, lx, ly, ls, ls, lantern);
-    b.tag.hidden = false;
-    b.tag.style.color = lantern;
-    b.tag.style.left = `${(xP + 0.5) * scale}px`;
-    b.tag.style.top = `${(topY - 2) * scale}px`;
   }
+  const topAt = (u) => tops[clamp(Math.round(u * (L - 1)), 0, L - 1)];
 
-  if (box.x1 > 0 && box.x0 < W) b.box = box;
-  else if (b.tag) b.tag.hidden = true;
-}
-
-function drawPalm(p, t) {
-  const z = p.z - travel;
-  if (z < 0.3) return;
-  const s = k / z;
-  const X = p.side * p.X;
-  const bx = sx(X, z);
-  const by = sy(0, z);
-  const tx = bx + p.lean * s;
-  const ty = sy(p.h, z);
-  if (Math.max(bx, tx) + s < 0 || Math.min(bx, tx) - s > W) return;
-  if (signBox && tx + s > signBox.x - 4 && tx - s < signBox.x + signBox.w + 4 && ty - s * 0.4 < signBox.y + signBox.h + 4 && ty + s * 0.6 > signBox.y - 4) return;
-  const w = Math.max(1, Math.round(s * 0.05));
-  const steps = Math.max(2, Math.ceil(by - ty));
-  for (let i = 0; i <= steps; i++) {
-    const u = i / steps;
-    const x = bx + (tx - bx) * u * u;
-    const y = by + (ty - by) * u;
-    rect(ctx, x - w / 2, y, w, 1, i % Math.max(3, w * 2) < w ? "#3a281b" : "#4d3524");
-  }
-  const sway = Math.sin(t * 0.9 + p.seed) * 0.08 * motion;
-  const fw = Math.max(1, Math.round(s * 0.03));
-  for (let f = 0; f < 9; f++) {
-    const angle = (f / 9) * Math.PI * 2 + p.seed + sway;
-    const len = s * (0.7 + 0.3 * hash(f + p.seed));
-    const dx = Math.cos(angle);
-    const dy = Math.sin(angle) * 0.35 - 0.2;
-    const n = Math.max(3, Math.ceil(len));
-    for (let j = 1; j <= n; j++) {
-      const u = j / n;
-      const x = tx + dx * len * u;
-      const y = ty + dy * len * u + len * 0.55 * u * u;
-      rect(ctx, x, y, fw, fw, "#22331d");
-      if (j % 2 === 0) {
-        const leaf = Math.max(1, Math.round(s * 0.09 * (1 - u)));
-        rect(ctx, x, y + fw, 1, leaf, hash(j + f * 13 + p.seed) > 0.75 ? "#6a8a46" : "#2f4a2a");
-      }
-    }
-  }
-  for (let c = 0; c < 3; c++) rect(ctx, tx - w + c * w, ty + w, w, w, "#5a3d1e");
-}
-
-function drawHouse(hs) {
-  const X = hs.side * hs.X;
-  const z0 = hs.z - travel;
-  if (z0 < 0.4) return;
-  const z1 = z0 + hs.len;
-  const xa = sx(X, z0);
-  const xb = sx(X, z1);
-  const from = Math.max(0, Math.floor(Math.min(xa, xb)));
-  const to = Math.min(W - 1, Math.ceil(Math.max(xa, xb)));
-  for (let x = from; x <= to; x++) {
-    const z = clamp(zAtColumn(X, x), z0, z1);
-    const u = (z - z0) / hs.len;
-    const roofTop = Math.round(sy(1.32, z));
-    const wallTop = Math.round(sy(1.05, z));
-    const wallBottom = Math.round(sy(0.35, z));
-    const ground = Math.round(sy(-0.04, z));
-    rect(ctx, x, roofTop, 1, wallTop - roofTop, "#8f969e");
-    dot(ctx, x, roofTop, "#c9cdd2");
-    for (let y = wallTop; y < wallBottom; y++) {
-      const lit = ((u > 0.15 && u < 0.35) || (u > 0.6 && u < 0.8)) && y > sy(0.88, z) && y < sy(0.6, z);
-      dot(ctx, x, y, lit ? "#ffcf7a" : y % 4 === 0 ? "#6a4c36" : "#7a5a40");
-    }
-    if (Math.abs(u - 0.08) < 0.04 || Math.abs(u - 0.5) < 0.04 || Math.abs(u - 0.92) < 0.04) rect(ctx, x, wallBottom, 1, ground - wallBottom, "#3a2a1e");
-  }
-}
-
-function drawSampan(t) {
-  const X = motion ? Math.sin(t * 0.045) * 1.0 : 0.35;
-  const dir = motion ? (Math.cos(t * 0.045) >= 0 ? 1 : -1) : 1;
-  const z = sampan.z - travel;
-  const s = k / z;
-  const xc = sx(X, z);
-  const water = Math.round(sy(0, z));
-  const len = Math.round(s * 0.8);
-  const box = emptyBox();
-  for (let i = 0; i < len; i++) {
-    const u = i / (len - 1);
-    const x = Math.round(xc - len / 2 + i);
-    const end = Math.pow(Math.abs(2 * u - 1), 2.2);
-    const top = Math.round(water - s * (0.11 + end * 0.08));
-    for (let y = top; y <= water; y++) dot(ctx, x, y, y === top ? "#c99a62" : y === water ? "#3a2414" : "#6b4426");
-    ctx.globalAlpha = 0.3;
-    dot(ctx, x, water + 1, "#2e2619");
-    ctx.globalAlpha = 1;
-    grow(box, x, top, x + 1, water + 1);
-  }
-  const stern = xc - (dir * len) / 2 + dir * Math.round(len * 0.15);
-  const deck = water - s * 0.11;
-  const head = drawVendor(stern, deck, s * 1.5, "#3a5fa0", false, t);
-  const swing = Math.sin(t * 2.4) * s * 0.12 * motion;
-  line(ctx, stern + dir * s * 0.04, deck - s * 0.18, stern - dir * s * 0.25 + swing, water + 1, "#8a6a40");
-  const pot = Math.max(2, Math.round(s * 0.12));
-  rect(ctx, xc - pot / 2, deck - pot, pot, pot, "#8f969e");
-  rect(ctx, xc - pot / 2, deck - pot, pot, 1, "#c9cdd2");
-  for (let i = 0; i < 3; i++) {
-    const phase = mod(t * 0.7 + i / 3, 1);
-    ctx.globalAlpha = (1 - phase) * 0.7;
-    dot(ctx, xc + Math.sin(t * 2 + i) * 1.5, deck - pot - 1 - phase * s * 0.3, "#f7ead2");
-    ctx.globalAlpha = 1;
-  }
-  if (motion) {
-    for (let i = 1; i <= 5; i++) {
-      if (Math.floor(t * 6 + i) % 3 === 0) continue;
-      ctx.globalAlpha = (1 - i / 6) * 0.6;
-      dot(ctx, xc - (dir * len) / 2 - dir * i * 2, water + (i % 2), "#e8d6b0");
+  if (state !== "down" && b.kind !== "moored" && motion) {
+    for (let k = 1; k <= 5; k++) {
+      if (Math.floor(t * 6 + k) % 3 === 0) continue;
+      ctx.globalAlpha = (1 - k / 6) * 0.55;
+      dot(ctx, col(0) - dir * k * 2, y + 1 + (k % 2), "#e8f4fa");
       ctx.globalAlpha = 1;
     }
   }
-  grow(box, xc - 4, head, xc + 4, head);
-  sampan.box = box;
+
+  const palette = GOODS[b.goods];
+  const fruit = Math.max(0.6, L * 0.028);
+  const mound = b.cargo.slice().sort((a, c) => c.h - a.h);
+  for (const f of mound) {
+    const lift = Math.sin(((f.u - 0.46) / 0.38) * Math.PI) * hh * 1.1;
+    disc(ctx, col(f.u), topAt(f.u) - fruit - f.h * lift, fruit * f.s, palette[f.c], palette[(f.c + 1) % 3]);
+  }
+
+  const sitting = state === "down";
+  const ru = 0.32;
+  const rx = Math.round(col(ru));
+  const deck = topAt(ru) + 1;
+  const bw = Math.max(2, Math.round(L * 0.07));
+  const bh = Math.max(2, Math.round(L * (sitting ? 0.07 : 0.1)));
+  const hs = Math.max(1, Math.round(L * 0.045));
+  const hatW = Math.max(3, Math.round(L * 0.17));
+  const hatH = Math.max(2, Math.round(L * 0.06));
+  rect(ctx, rx - bw / 2, deck - bh, bw, bh, b.shirt);
+  rect(ctx, rx - hs / 2, deck - bh - hs, hs, hs, "#e0a878");
+  const hatTop = deck - bh - hs - hatH + 1;
+  for (let r = 0; r < hatH; r++) {
+    const w = Math.max(1, Math.round((hatW * (r + 1)) / hatH));
+    rect(ctx, rx - w / 2, hatTop + r, w, 1, r === hatH - 1 ? "#c8ae78" : "#f4e6b8");
+  }
+
+  if (b.motor) {
+    const mx = Math.round(col(0.02) - dir * L * 0.03);
+    const mw = Math.max(2, Math.round(L * 0.06));
+    const mh = Math.max(2, Math.round(L * 0.07));
+    rect(ctx, mx - mw / 2, topAt(0.02) - mh + 1, mw, mh, "#3a3a46");
+    rect(ctx, mx - mw / 2, topAt(0.02) - mh + 1, mw, 1, "#c04040");
+    rect(ctx, mx, topAt(0.02) + 1, 1, hh * 1.6, "#2a2a30");
+  } else if (b.kind !== "moored") {
+    const swing = sitting ? 0 : Math.sin(t * 2 * motion + b.seed) * L * 0.06;
+    line(ctx, rx + dir * bw * 0.5, deck - bh * 0.6, col(-0.05) + swing, y + hh, "#7a5a36");
+  }
+
+  if (b.canopy) {
+    const ca = Math.round(col(0.2));
+    const cb = Math.round(col(0.66));
+    const ct = Math.round(Math.min(topAt(0.2), topAt(0.66)) - L * 0.22);
+    rect(ctx, ca, ct, 1, topAt(0.2) - ct, "#3a2a1e");
+    rect(ctx, cb, ct, 1, topAt(0.66) - ct, "#3a2a1e");
+    const left = Math.min(ca, cb) - 1;
+    const width = Math.abs(cb - ca) + 3;
+    const ch = Math.max(2, Math.round(L * 0.045));
+    const stripe = Math.max(2, Math.round(L * 0.04));
+    for (let i = 0; i < width; i++) rect(ctx, left + i, ct - ch, 1, ch, Math.floor(i / stripe) % 2 ? "#f2f4fa" : "#3a68b8");
+    tops.push(ct - ch);
+  }
+
+  if (b.service !== null) {
+    const color = STATUS[state];
+    const pu = 0.9;
+    const px = Math.round(col(pu));
+    const pt = topAt(pu) - Math.round(L * 0.14);
+    rect(ctx, px, pt, 1, topAt(pu) - pt, "#3a2a1e");
+    const ls = Math.max(2, Math.round(L * 0.035));
+    const pulse = state === "down" ? (Math.floor(t * 1.5) % 2 === 0 ? 0.5 : 0.12) : 0.3 + Math.sin(t * 3) * 0.1;
+    ctx.globalAlpha = pulse;
+    rect(ctx, px - ls, pt - ls, ls * 3, ls * 3, color);
+    ctx.globalAlpha = 1;
+    rect(ctx, px, pt, ls, ls, color);
+    if (sitting) {
+      const z = Math.max(1, Math.round(L * 0.014));
+      for (let i = 0; i < 3; i++) {
+        const phase = mod(t * 0.5 + i / 3, 1);
+        drawZ(rx + hatW / 2 + i * z * 3, hatTop - z * 4 - phase * L * 0.12, z, 1 - phase);
+      }
+    }
+  }
+
+  const top = Math.min(...tops, hatTop);
+  b.box = { x0: x0 - 2, y0: top - 2, x1: x0 + L + 2, y1: y + hh };
+  if (b.tag) {
+    b.tag.button.style.left = `${(x0 + L / 2) * scale}px`;
+    b.tag.button.style.top = `${(top - 6 * unit - 2) * scale}px`;
+  }
 }
 
 function usageColor(value) {
-  if (value === null) return "#9a948a";
-  if (value >= 90) return "#e5484d";
-  if (value >= 75) return "#f2d14b";
-  return "#5fd35f";
+  if (value === null) return "#9aa3b2";
+  if (value >= 90) return "#ef4b4b";
+  if (value >= 75) return "#f2a93b";
+  return "#3fd36b";
 }
 
-function drawBillboard() {
-  const z = billboard.z - travel;
-  const s = k / z;
-  const ground = sy(0, z);
-  const xc = Math.round(sx(billboard.X, z));
-  const bw = 51;
-  const bh = 27;
-  const legs = Math.max(10, Math.round(s * 1.3));
-  const bx = Math.round(clamp(xc - bw / 2, 2, W - bw - 2));
-  let by = Math.round(ground - legs - bh);
-  if (signBox && bx < signBox.x + signBox.w + 2 && by < signBox.y + signBox.h + 2) by = Math.max(by, signBox.y + signBox.h + 4);
-  const post = Math.max(2, Math.round(ground - by - bh));
-  for (const off of [8, bw - 10]) rect(ctx, bx + off, by + bh, 2, post, "#3a2a1e");
-  rect(ctx, bx + 2, by + 2, bw, bh, "rgba(20, 10, 20, 0.45)");
-  rect(ctx, bx, by, bw, bh, "#f2d3a0");
-  rect(ctx, bx + 1, by + 1, bw - 2, bh - 2, "#1f4a3a");
+function drawStatsBoard() {
+  const { x: bx, y: by, w: bw, h: bh } = statsBoard;
+  rect(ctx, bx + 2, by + 2, bw, bh, "rgba(0, 0, 0, 0.3)");
+  rect(ctx, bx, by, bw, bh, "#3a2414");
+  rect(ctx, bx + 1, by + 1, bw - 2, bh - 2, "#243a4e");
   const stale = !stats.updated || Date.now() - stats.updated > STATS_STALE_MS;
   [["CPU", stats.cpu], ["RAM", stats.ram], ["DISK", stats.disk]].forEach(([label, value], i) => {
     const y = by + 4 + i * 7;
-    glyphText(ctx, SMALL_FONT, label, bx + 4, y, "#f7ead2");
-    rect(ctx, bx + 21, y, 12, 5, "#143326");
+    glyphText(ctx, SMALL_FONT, label, bx + 4, y, "#f4f1e8");
+    rect(ctx, bx + 21, y, 12, 5, "#1a2a38");
     if (value !== null && !stale) rect(ctx, bx + 21, y, Math.max(1, Math.round((12 * value) / 100)), 5, usageColor(value));
     const text = value === null || stale ? "--" : `${Math.round(value)}%`;
-    const width = text.length * 4 - 1;
-    glyphText(ctx, SMALL_FONT, text, bx + bw - 4 - width, y, stale ? "#9a948a" : "#f7ead2");
+    glyphText(ctx, SMALL_FONT, text, bx + bw - 3 - text.length * 4, y, stale ? "#9aa3b2" : "#f4f1e8");
   });
-  billboard.box = { x0: bx, y0: by, x1: bx + bw, y1: by + bh + post };
 }
 
 function drawSky(t) {
-  const clouds = [[0.12, 0.18, 1.2], [0.5, 0.1, 0.8], [0.82, 0.3, 1.5]];
-  for (const [fx, fy, speed] of clouds) {
-    const x = Math.round(mod(fx * W + t * speed * motion, W + 40) - 20);
-    const y = Math.round(fy * hy);
-    rect(ctx, x + 3, y, 8, 1, "#fbd0b0");
-    rect(ctx, x, y + 1, 15, 1, "#f4a7a0");
-    rect(ctx, x + 2, y + 2, 10, 1, "#e48a8a");
+  for (const c of clouds) {
+    const x = Math.round(mod(c.x * W + t * c.speed * motion, W + c.sprite.width * 2) - c.sprite.width);
+    ctx.drawImage(c.sprite, x, Math.round(c.y * hy));
   }
   if (motion === 0) return;
-  const cycle = mod(t, 26) / 26;
+  const cycle = mod(t, 30) / 30;
   const flap = Math.floor(t * 4) % 2;
-  for (const [ox, oy] of [[0, 0], [-5, 2], [-9, -1], [-13, 3]]) {
+  for (const [ox, oy] of [[0, 0], [-5, 2], [-9, -1]]) {
     const x = Math.round(cycle * (W + 60) - 30 + ox);
-    const y = Math.round(hy * 0.3 + oy + Math.sin(t + ox) * 1.5);
-    dot(ctx, x, y, "#f5f1e6");
-    dot(ctx, x - 1, y - flap, "#f5f1e6");
-    dot(ctx, x + 1, y - flap, "#f5f1e6");
+    const y = Math.round(hy * 0.45 + oy + Math.sin(t + ox) * 1.5);
+    dot(ctx, x, y, "#3a4a5a");
+    dot(ctx, x - 1, y - flap, "#3a4a5a");
+    dot(ctx, x + 1, y - flap, "#3a4a5a");
   }
 }
 
 function drawWater(t) {
-  const flow = t * 0.45 * motion;
-  for (let y = hy + 1; y < H; y++) {
-    const dy = y - hy;
-    const z = k / dy;
-    const phase = z * 1.8 + flow;
-    if (phase - Math.floor(phase) > 0.2) continue;
-    const half = BANK * dy;
-    const count = 1 + Math.floor(Math.min(half, W / 2) / 14);
+  const count = 3 + Math.floor(W / 36);
+  for (let y = hy + 2; y < H; y += 2) {
+    const v = (y - hy) / (H - hy);
     for (let j = 0; j < count; j++) {
-      const seed = hash(Math.floor(phase) * 17.3 + j * 3.1 + y * 0.01);
-      const len = 1 + Math.round(seed * 3 + dy * 0.05);
-      ctx.globalAlpha = 0.25 + Math.min(0.35, dy / 300);
-      rect(ctx, cx + (seed * 2 - 1) * Math.min(half, W / 2) * 0.95, y, len, 1, seed > 0.5 ? "#d8b48a" : "#c8a882");
+      const seed = hash(y * 7.1 + j * 13.7);
+      const len = 2 + Math.round(seed * 4 + v * 10 * unit);
+      const x = Math.round(mod(seed * W * 9 + t * (1.5 + v * 5) * unit * motion * (j % 2 ? 1 : -0.6), W + len) - len);
+      ctx.globalAlpha = 0.25 + v * 0.35;
+      rect(ctx, x, y, len, 1, seed > 0.45 ? "#a8d8f2" : "#2a6496");
     }
   }
   const tick = Math.floor(t * 3 * motion);
   for (let y = hy + 1; y < H; y += 2) {
-    const d = (y - hy) / (H - hy);
-    const half = 2 + (y - hy) * 0.2;
+    const v = (y - hy) / (H - hy);
+    const half = 3 + v * W * 0.07;
     for (let j = -2; j <= 2; j++) {
       const seed = hash(y * 13 + j * 7 + tick);
-      if (seed < 0.4) continue;
-      ctx.globalAlpha = 0.8 * (1 - d * 0.75);
-      rect(ctx, sunX + (j * half) / 2 + (seed - 0.5) * half, y, 1 + Math.round(seed * 3), 1, seed > 0.8 ? "#fff4cf" : "#ffd98a");
+      if (seed < 0.35) continue;
+      ctx.globalAlpha = 0.85 * (1 - v * 0.8);
+      rect(ctx, sunX + (j * half) / 2 + (seed - 0.5) * half, y, 1 + Math.round(seed * 4 * unit), 1, seed > 0.75 ? "#fff6d0" : "#f8d890");
     }
   }
   ctx.globalAlpha = 1;
 }
 
 function drawSignLights(t) {
-  if (!signBox) return;
   const step = Math.floor(t * 3 * motion);
   for (let x = signBox.x + 2; x < signBox.x + signBox.w - 2; x += 4) {
     const on = (x / 4 + step) % 2 < 1;
@@ -898,69 +962,28 @@ function drawSignLights(t) {
   }
 }
 
-function drawBow(t) {
-  const bob = Math.round(Math.sin(t * 1.5) * 1.2 * motion);
-  const len = Math.round(Math.min(H * 0.3, 64));
-  const tipY = H - len + bob;
-  for (let y = tipY; y < H; y++) {
-    const r = y - tipY;
-    const half = Math.round(r * 0.95 + 1);
-    const rim = 2 + Math.floor(r / 22);
-    rect(ctx, cx - half - 1, y, 1, 1, "#2f5d6b");
-    rect(ctx, cx + half, y, 1, 1, "#2f5d6b");
-    rect(ctx, cx - half, y, half * 2, 1, r % 9 === 0 ? "#3e2716" : r < 10 ? "#7a5030" : "#5e3c22");
-    rect(ctx, cx - half, y, rim, 1, "#c99a62");
-    rect(ctx, cx + half - rim, y, rim, 1, "#c99a62");
-  }
-  rect(ctx, cx - 1, tipY - 6, 2, 7, "#8a5a34");
-  rect(ctx, cx - 1, tipY - 7, 2, 1, "#c99a62");
-  if (motion) {
-    for (let i = 0; i < 8; i++) {
-      const y = tipY + len * 0.35 + i * (len * 0.08);
-      const r = y - tipY;
-      const spray = 2 + ((i * 7 + Math.floor(t * 8)) % 5);
-      ctx.globalAlpha = 0.55;
-      dot(ctx, cx - r * 0.95 - spray, y, "#f2e6cc");
-      dot(ctx, cx + r * 0.95 + spray, y, "#f2e6cc");
-    }
-    ctx.globalAlpha = 1;
-  }
-  const gx = cx + Math.round(len * 0.22);
-  const gy = H - Math.round(len * 0.42) + bob;
-  rect(ctx, gx, gy, 6, 9, "#d9d3c7");
-  rect(ctx, gx + 1, gy + 3, 4, 5, "#7a4a26");
-  rect(ctx, gx + 1, gy + 1, 2, 2, "#f2efe6");
-  rect(ctx, gx + 3, gy + 2, 2, 1, "#f2efe6");
-  line(ctx, gx + 4, gy + 2, gx + 6, gy - 4, "#d94848");
-  const kx = cx - Math.round(len * 0.42);
-  const ky = H - Math.round(len * 0.3) + bob;
-  rect(ctx, kx, ky, 13, 5, "#a07a42");
-  for (let x = kx; x < kx + 13; x += 2) rect(ctx, x, ky + 1, 1, 4, "#7a5a30");
-  for (const [mx, my] of [[1, -2], [4, -3], [7, -2], [10, -2], [5, -5]]) {
-    rect(ctx, kx + mx, ky + my, 3, 2, "#e8c040");
-    dot(ctx, kx + mx, ky + my, "#f6dc7a");
-  }
+function drawLanternGlow(t) {
+  ctx.globalAlpha = 0.14 + Math.sin(t * 2.2) * 0.05;
+  disc(ctx, lantern.x, lantern.y, lantern.r, "#ffd070");
+  ctx.globalAlpha = 1;
 }
 
-function distance(o) {
-  if (o.kind === "boat") return Math.hypot(o.lateral, o.z - travel + o.len / 2);
-  if (o.kind === "sampan") return o.z - travel;
-  return Math.hypot(o.X, o.z - travel);
-}
-
-function frameObjects() {
-  return [...houses, ...palms, ...boats, sampan].sort((a, b) => distance(b) - distance(a));
-}
-
-function hitTargets() {
-  const nearest = [...boats, sampan].filter((o) => o.box).sort((a, b) => distance(a) - distance(b));
-  return billboard.box ? [billboard, ...nearest] : nearest;
+function step(dt) {
+  for (const b of boats) {
+    if (b.kind !== "river") continue;
+    b.x += b.dir * b.speed * dt * motion;
+    if (b.dir > 0 && b.x > W + b.len) b.x = -b.len;
+    if (b.dir < 0 && b.x < -b.len) b.x = W + b.len;
+  }
 }
 
 function targetAt(bx, by) {
-  for (const o of hitTargets()) {
-    const box = o.box;
-    if (bx >= box.x0 - 1 && bx <= box.x1 + 1 && by >= box.y0 - 1 && by <= box.y1 + 1) return o;
+  const s = statsBoard;
+  if (bx >= s.x && bx <= s.x + s.w && by >= s.y && by <= s.y + s.h) return { kind: "stats" };
+  const ordered = boats.filter((b) => b.box && b.kind !== "moored").sort((a, c) => c.y - a.y);
+  for (const b of ordered) {
+    const box = b.box;
+    if (bx >= box.x0 && bx <= box.x1 && by >= box.y0 && by <= box.y1) return b;
   }
   return null;
 }
@@ -986,7 +1009,7 @@ function percent(value) {
 
 function fillTip(o) {
   const title = document.createElement("strong");
-  if (o.kind === "billboard") {
+  if (o.kind === "stats") {
     title.textContent = "This machine";
     const dl = document.createElement("dl");
     row(dl, "CPU", percent(stats.cpu));
@@ -1002,8 +1025,8 @@ function fillTip(o) {
     tip.replaceChildren(...parts);
     return;
   }
-  if (o.kind === "sampan" || o.service === null) {
-    title.textContent = o.kind === "sampan" ? "Ghe hủ tiếu" : `Ghe ${o.goods}`;
+  if (o.service === null) {
+    title.textContent = "Market boat";
     const p = document.createElement("p");
     p.textContent = `Not a service. ${o.quip}`;
     tip.replaceChildren(title, p);
@@ -1013,7 +1036,7 @@ function fillTip(o) {
   const h = health[o.service];
   title.textContent = svc.name;
   const dl = document.createElement("dl");
-  row(dl, "Status", `${LABEL[h.state]} (${MEANING[h.state]})`);
+  row(dl, "Status", LABEL[h.state]);
   row(dl, "Uptime", h.checks ? `${((100 * h.healthy) / h.checks).toFixed(1)}% of ${h.checks} checks this visit` : "no check yet");
   row(dl, "Latency", h.latency === null ? "unknown" : `${Math.round(h.latency)} ms`);
   row(dl, "Last check", h.last ? `${new Date(h.last).toLocaleTimeString()} (${ago(h.last)})` : "never");
@@ -1077,40 +1100,28 @@ document.addEventListener("keydown", (event) => {
 });
 
 function renderRoster() {
-  roster.replaceChildren();
-  SERVICES.forEach((svc, i) => {
-    const h = health[i];
-    const li = document.createElement("li");
-    const button = document.createElement("button");
-    button.type = "button";
-    const mark = document.createElement("i");
-    mark.className = `dot ${h.state === "unknown" ? "" : h.state}`;
-    const name = document.createElement("span");
-    name.textContent = svc.name;
-    const state = document.createElement("span");
-    state.className = "state";
-    state.textContent = LABEL[h.state].toLowerCase();
-    button.append(mark, name, state);
-    button.addEventListener("click", () => {
-      const b = boats.find((boat) => boat.service === i);
-      if (!b || !b.box) return;
-      pinned = b;
-      hovered = b;
-      showTip(b, ((b.box.x0 + b.box.x1) / 2) * scale, ((b.box.y0 + b.box.y1) / 2) * scale);
-    });
-    li.append(button);
-    roster.append(li);
-  });
   const counts = { up: 0, degraded: 0, down: 0, unknown: 0 };
   for (const h of health) counts[h.state]++;
-  const words = [`${counts.up} of ${SERVICES.length} boats trading`];
-  if (counts.degraded) words.push(`${counts.degraded} slow`);
-  if (counts.down) words.push(`${counts.down} closed`);
+  for (const b of boats) {
+    if (!b.tag) continue;
+    const h = health[b.service];
+    b.tag.mark.className = `dot ${h.state === "unknown" ? "" : h.state}`;
+    b.tag.latency.textContent = h.latency === null ? (h.state === "down" ? "no answer" : "…") : `${Math.round(h.latency)}ms`;
+    b.tag.button.setAttribute("aria-label", `${SERVICES[b.service].name}, ${LABEL[h.state]}${h.latency === null ? "" : `, ${Math.round(h.latency)} ms`}`);
+  }
+  let worst = "unknown";
+  if (counts.up) worst = "up";
+  if (counts.degraded) worst = "degraded";
+  if (counts.down) worst = "down";
+  overall.className = `dot ${worst === "unknown" ? "" : worst}`;
+  const words = [`${counts.up} of ${SERVICES.length} services healthy`];
+  if (counts.degraded) words.push(`${counts.degraded} warning`);
+  if (counts.down) words.push(`${counts.down} down`);
   summary.textContent = `${words.join(", ")}.`;
 }
 
 function renderMachine() {
-  machine.textContent = `CPU ${percent(stats.cpu)} · RAM ${percent(stats.ram)} · Disk ${percent(stats.disk)}`;
+  machine.textContent = `CPU ${percent(stats.cpu)}, RAM ${percent(stats.ram)}, disk ${percent(stats.disk)}.`;
 }
 
 function countFaults(value, tally) {
@@ -1174,7 +1185,6 @@ function usage(value) {
 
 async function readStats() {
   const res = await fetchJson(STATS_PATH);
-  stats.fetched = Date.now();
   if (!res.ok || !res.body) {
     stats.cpu = stats.ram = stats.disk = null;
     stats.note = res.ok ? "The reading is not JSON." : res.note;
@@ -1188,21 +1198,20 @@ async function readStats() {
   renderMachine();
 }
 
+let previous = performance.now();
 function frame(now) {
+  const dt = Math.min(0.1, (now - previous) / 1000);
+  previous = now;
   const t = now / 1000;
-  travel = motion * Math.sin(t * 0.07) * 0.22;
+  step(dt);
   ctx.drawImage(backdrop, 0, 0);
   drawSky(t);
   drawSignLights(t);
   drawWater(t);
-  for (const o of frameObjects()) {
-    if (o.kind === "boat") drawBoat(o, t);
-    else if (o.kind === "palm") drawPalm(o, t);
-    else if (o.kind === "house") drawHouse(o);
-    else drawSampan(t);
-  }
-  drawBillboard();
-  drawBow(t);
+  for (const b of [...boats].sort((a, c) => a.y - c.y)) drawBoat(b, t);
+  ctx.drawImage(foreground, 0, 0);
+  drawLanternGlow(t);
+  drawStatsBoard();
   if (!tip.hidden && hovered && now - lastTipAt > 1000) {
     fillTip(hovered);
     lastTipAt = now;
@@ -1219,9 +1228,8 @@ document.addEventListener("visibilitychange", () => {
   readStats();
 });
 
-renderRoster();
-renderMachine();
 resize();
+renderMachine();
 checkAll();
 readStats();
 setInterval(checkAll, CHECK_EVERY_MS);

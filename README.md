@@ -44,15 +44,15 @@ cp .env.example .env
 
 ## Homepage
 
-`www/index.html` is the homepage at `/`. You sit in a boat in the floating market of Cái Răng and look toward the bridge at sunrise. Moored boats line both banks. A boat with a lantern is a service, and the lantern shows its health:
+`www/index.html` is the homepage at `/`. It looks from a riverside stall over the wide Mekong at the floating market of Cái Răng. The bridge with its billboard stands on the horizon, and the sun rises behind it. Small boats moor along both far banks. A boat with a name tag is a service, and its lantern and tag show its health:
 
-- Green: the boat is trading. The last check answered `2xx` within 1.5 s.
-- Yellow: the boat has a slow trade. The answer was slow, or a part reports a fault.
-- Red: the boat is closed. The check failed or timed out after 5 s.
+- Green, healthy: the last check answered `2xx` within 1.5 s.
+- Orange, warning: the answer was slow, or a part reports a fault.
+- Red, down: the check failed or timed out after 5 s.
 
 The page probes each service every 15 s from the browser. Hover or tap a boat to read its status, uptime, latency and last check. Add a service to the `SERVICES` list in `www/index.html`.
 
-The billboard on the right bank shows the CPU, RAM and disk usage of the machine. `make stats` installs the timer that writes these values. The timer runs a sandboxed script as a dynamic user without network access. nginx serves the file read-only at `/stats.json`. The billboard shows `--` when the reading is older than 3 minutes.
+The board on the right dock shows the CPU, RAM and disk usage of the machine. `make stats` installs the timer that writes these values. The timer runs a sandboxed script as a dynamic user without network access. nginx serves the file read-only at `/stats.json`. The billboard shows `--` when the reading is older than 3 minutes.
 
 nginx serves the page with a strict Content Security Policy. `make nginx` computes the hashes of the inline script and style, so the page runs no other code.
 
