@@ -3,12 +3,14 @@ SCRIPT_NAME=homelab-stats
 . "$(dirname "$0")/../lib/common.sh"
 require_command sudo
 require_command systemctl
+require_command systemd-sysusers
 
 collector=/usr/local/lib/homelab/collect-stats
 units=/etc/systemd/system
 output=/run/homelab-stats/stats.json
 
 log "installing $collector and the homelab-stats timer"
+sudo install -d -o root -g root -m 755 /etc/sysusers.d || die "cannot create /etc/sysusers.d"
 sudo install -o root -g root -m 644 "$ROOT/stats/homelab-stats.sysusers" /etc/sysusers.d/homelab-stats.conf || die "cannot install the homelab-stats user"
 sudo systemd-sysusers /etc/sysusers.d/homelab-stats.conf || die "cannot create the homelab-stats user"
 if [ -L /run/homelab-stats ]; then
