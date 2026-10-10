@@ -39,15 +39,14 @@ canvas {
   position: fixed;
   left: 16px;
   max-width: calc(100vw - 32px);
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: var(--panel);
   border: 2px solid var(--edge);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
 }
-.sign { top: 16px; }
-.sign h1 { margin: 0; font-size: 16px; letter-spacing: 0.04em; color: var(--gold); }
-.sign p { margin: 4px 0 0; color: var(--muted); }
-.roster { bottom: 16px; padding: 8px 12px; }
+.hud { top: 16px; }
+.hud h1 { margin: 0; font-size: 14px; letter-spacing: 0.04em; color: var(--gold); }
+.hud > p { margin: 2px 0 6px; color: var(--muted); font-size: 12px; }
 .roster ul { list-style: none; margin: 0; padding: 0; }
 .roster button {
   all: unset;
@@ -104,14 +103,15 @@ noscript { position: fixed; inset: auto 16px 16px; }
 <body>
 <canvas id="scene" aria-hidden="true"></canvas>
 <div id="tags" class="tags" aria-hidden="true"></div>
-<header class="panel sign">
-<h1>Chợ nổi Homelab</h1>
-<p><span id="summary" aria-live="polite">The boats set out at sunrise.</span> <span id="ago"></span></p>
-</header>
-<section class="panel roster" aria-label="Services">
+<header class="panel hud">
+<h1>Homelab</h1>
+<p><span id="summary" aria-live="polite">The market opens at sunrise.</span> <span id="ago"></span></p>
+<section class="roster" aria-label="Services">
 <ul id="roster"></ul>
-<p class="legend"><span><i class="dot up"></i>afloat</span><span><i class="dot degraded"></i>struggling</span><span><i class="dot down"></i>anchored</span></p>
+<p id="machine" class="legend"></p>
+<p class="legend"><span><i class="dot up"></i>trading</span><span><i class="dot degraded"></i>slow trade</span><span><i class="dot down"></i>closed</span></p>
 </section>
+</header>
 <div id="tip" class="tip" role="tooltip" hidden></div>
 <noscript class="panel">The market needs JavaScript to open.</noscript>
 <script>
@@ -120,16 +120,22 @@ noscript { position: fixed; inset: auto 16px 16px; }
 const SERVICES = [
   { name: "kanthord", path: "/s/kanthord/api/liveness", open: "/s/kanthord/", goods: "pineapple" },
 ];
+const STATS_PATH = "/stats.json";
 
 const CHECK_EVERY_MS = 15000;
+const STATS_EVERY_MS = 60000;
+const STATS_STALE_MS = 180000;
 const TIMEOUT_MS = 5000;
 const SLOW_MS = 1500;
-const BASE = 200;
-const L = 30;
-const POLE = 22;
+const BASE = 225;
+const BANK = 1.75;
+const BRIDGE_Z = 10;
+const HULL = 0.26;
+const POLE_HEIGHT = 1.05;
+const BOAT_LEN = 0.92;
+const SAMPAN_Z = 4.4;
 
-const SPEED = { up: 6, degraded: 2, down: 0, unknown: 3 };
-const LABEL = { up: "Afloat", degraded: "Struggling", down: "Anchored", unknown: "Setting out" };
+const LABEL = { up: "Trading", degraded: "Slow trade", down: "Closed", unknown: "Opening" };
 const MEANING = { up: "healthy", degraded: "degraded", down: "down", unknown: "no check yet" };
 const LANTERN = { up: "#5fd35f", degraded: "#f2d14b", down: "#e5484d", unknown: "#9a948a" };
 const GOODS = {
@@ -139,20 +145,68 @@ const GOODS = {
   pumpkin: ["#d9772a", "#f0a050"],
   mango: ["#e8c040", "#f6dc7a"],
   dragonfruit: ["#d6336c", "#5aa04a"],
+  banana: ["#e8d04a", "#8aa83a"],
 };
-const DECOR = [
-  { goods: "watermelon", quip: "Sells watermelons. Ten thousand đồng each, no refunds." },
-  { goods: "dragonfruit", quip: "Sells thanh long. No SLA, but very pink." },
-  { goods: "coconut", quip: "Sells coconuts. Coconut water has 100% uptime." },
-  { goods: "pumpkin", quip: "Sells pumpkins. Pumpkins answer no pings." },
-  { goods: "mango", quip: "Sells mangoes. Mangoes are eventually consistent." },
-  { goods: "pineapple", quip: "Sells pineapples. Not to be confused with kanthord." },
-];
-const PAINT = ["#2f5d6b", "#8a2f2f", "#2f6b46", "#3a4f8a"];
-const SHIRT = ["#3a5fa0", "#c04a3a", "#e6e0cf", "#5a7a3a"];
+const QUIPS = {
+  pineapple: "Sells pineapples. Not to be confused with kanthord.",
+  watermelon: "Sells watermelons. Ten thousand đồng each, no refunds.",
+  coconut: "Sells coconuts. Coconut water has 100% uptime.",
+  pumpkin: "Sells pumpkins. Pumpkins answer no pings.",
+  mango: "Sells mangoes. Mangoes are eventually consistent.",
+  dragonfruit: "Sells thanh long. No SLA, but very pink.",
+  banana: "Sells bananas. Bananas scale horizontally.",
+};
+const PAINT = ["#2f5d6b", "#8a2f2f", "#2f6b46", "#3a4f8a", "#7a5a2a"];
+const SHIRT = ["#3a5fa0", "#c04a3a", "#e6e0cf", "#5a7a3a", "#8a4a8a"];
 const SKY = ["#3a2a5c", "#5b3767", "#8c4a6c", "#c4606a", "#e8836a", "#f6ac6b", "#fbd08a"];
-const WATER = ["#d0915e", "#a8775a", "#8a6a50", "#74604a", "#62533f", "#544736"];
+const WATER = ["#e0a068", "#b8805c", "#957052", "#7a6249", "#64553f", "#544736"];
+const LAND = ["#4a4a34", "#3f4430", "#343c2a", "#2b3324"];
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+
+const BIG_FONT = {
+  C: [" ### ", "#   #", "#    ", "#    ", "#    ", "#   #", " ### "],
+  H: ["#   #", "#   #", "#   #", "#####", "#   #", "#   #", "#   #"],
+  O: [" ### ", "#   #", "#   #", "#   #", "#   #", "#   #", " ### "],
+  N: ["#   #", "##  #", "# # #", "#  ##", "#   #", "#   #", "#   #"],
+  I: [" ### ", "  #  ", "  #  ", "  #  ", "  #  ", "  #  ", " ### "],
+  A: [" ### ", "#   #", "#   #", "#####", "#   #", "#   #", "#   #"],
+  R: ["#### ", "#   #", "#   #", "#### ", "# #  ", "#  # ", "#   #"],
+  G: [" ### ", "#   #", "#    ", "# ###", "#   #", "#   #", " ### "],
+};
+const MARKS = {
+  horn: [[5, 1], [5, 0]],
+  dot: [[2, 8]],
+  circ: [[1, -2], [2, -3], [3, -2]],
+  hook: [[4, -5], [5, -5], [5, -4], [4, -3]],
+  acute: [[2, -2], [3, -3]],
+  breve: [[1, -3], [1, -2], [2, -2], [3, -2], [3, -3]],
+};
+const SIGN_TEXT = [["C"], ["H"], ["O", "horn", "dot"], [" "], ["N"], ["O", "circ", "hook"], ["I"], [" "], ["C"], ["A", "acute"], ["I"], [" "], ["R"], ["A", "breve"], ["N"], ["G"]];
+const SMALL_FONT = {
+  0: ["###", "# #", "# #", "# #", "###"],
+  1: [" # ", "## ", " # ", " # ", "###"],
+  2: ["###", "  #", "###", "#  ", "###"],
+  3: ["###", "  #", "###", "  #", "###"],
+  4: ["# #", "# #", "###", "  #", "  #"],
+  5: ["###", "#  ", "###", "  #", "###"],
+  6: ["###", "#  ", "###", "# #", "###"],
+  7: ["###", "  #", "  #", " # ", " # "],
+  8: ["###", "# #", "###", "# #", "###"],
+  9: ["###", "# #", "###", "  #", "###"],
+  "%": ["# #", "  #", " # ", "#  ", "# #"],
+  "-": ["   ", "   ", "###", "   ", "   "],
+  C: ["###", "#  ", "#  ", "#  ", "###"],
+  P: ["###", "# #", "###", "#  ", "#  "],
+  U: ["# #", "# #", "# #", "# #", "###"],
+  R: ["## ", "# #", "## ", "# #", "# #"],
+  A: [" # ", "# #", "###", "# #", "# #"],
+  M: ["# #", "###", "###", "# #", "# #"],
+  D: ["## ", "# #", "# #", "# #", "## "],
+  I: ["###", " # ", " # ", " # ", "###"],
+  S: ["###", "#  ", "###", "  #", "###"],
+  K: ["# #", "# #", "## ", "# #", "# #"],
+  " ": ["   ", "   ", "   ", "   ", "   "],
+};
 
 const canvas = document.getElementById("scene");
 const ctx = canvas.getContext("2d");
@@ -161,19 +215,27 @@ const tip = document.getElementById("tip");
 const summary = document.getElementById("summary");
 const agoText = document.getElementById("ago");
 const roster = document.getElementById("roster");
-const rosterPanel = document.querySelector(".roster");
+const machine = document.getElementById("machine");
 const motion = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1;
 
-const health = SERVICES.map(() => ({ state: "unknown", checks: 0, afloat: 0, latency: null, last: null, note: "" }));
+const health = SERVICES.map(() => ({ state: "unknown", checks: 0, healthy: 0, latency: null, last: null, note: "" }));
+const stats = { cpu: null, ram: null, disk: null, updated: null, fetched: null, note: "No reading yet." };
 
 let W = 0;
 let H = 0;
 let scale = 1;
-let horizon = 0;
+let hy = 0;
+let cx = 0;
+let k = 1;
 let sunX = 0;
 let backdrop = null;
+let signBox = null;
 let boats = [];
-let hyacinths = [];
+let palms = [];
+let houses = [];
+let sampan = null;
+let billboard = null;
+let travel = 0;
 let hovered = null;
 let pinned = null;
 let lastTipAt = 0;
@@ -198,31 +260,79 @@ function mod(a, b) {
   return ((a % b) + b) % b;
 }
 
+function clamp(v, lo, hi) {
+  return Math.min(Math.max(v, lo), hi);
+}
+
 function dithered(palette, t, x, y) {
-  const pos = Math.min(Math.max(t, 0), 0.9999) * (palette.length - 1);
+  const pos = clamp(t, 0, 0.9999) * (palette.length - 1);
   const low = Math.floor(pos);
-  const threshold = BAYER[(y % 4) * 4 + (x % 4)] / 16;
+  const threshold = BAYER[(y & 3) * 4 + (x & 3)] / 16;
   return palette[pos - low > threshold ? low + 1 : low];
+}
+
+function rect(g, x, y, w, h, color) {
+  g.fillStyle = color;
+  g.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
 }
 
 function dot(g, x, y, color) {
   g.fillStyle = color;
-  g.fillRect(x, y, 1, 1);
+  g.fillRect(Math.round(x), Math.round(y), 1, 1);
 }
 
-function line(g, x0, y0, x1, y1, color) {
+function line(g, x0, y0, x1, y1, color, width = 1) {
+  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
   g.fillStyle = color;
-  const dx = Math.abs(x1 - x0);
-  const dy = -Math.abs(y1 - y0);
-  const sx = x0 < x1 ? 1 : -1;
-  const sy = y0 < y1 ? 1 : -1;
-  let err = dx + dy;
-  for (let step = 0; step <= dx - dy; step++) {
-    g.fillRect(x0, y0, 1, 1);
-    if (x0 === x1 && y0 === y1) return;
-    const e2 = 2 * err;
-    if (e2 >= dy) { err += dy; x0 += sx; }
-    if (e2 <= dx) { err += dx; y0 += sy; }
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    g.fillRect(Math.round(x0 + (x1 - x0) * u - (width - 1) / 2), Math.round(y0 + (y1 - y0) * u), width, width);
+  }
+}
+
+function sx(X, z) {
+  return cx + (X * k) / z;
+}
+
+function sy(h, z) {
+  return hy + ((1 - h) * k) / z;
+}
+
+function zAtColumn(X, x) {
+  const dx = x + 0.5 - cx;
+  return dx === 0 ? Infinity : (X * k) / dx;
+}
+
+function glyphText(g, font, text, x, y, color) {
+  let pen = x;
+  for (const ch of text) {
+    const rows = font[ch] || font[" "];
+    rows.forEach((row, ry) => {
+      for (let rx = 0; rx < row.length; rx++) if (row[rx] === "#") dot(g, pen + rx, y + ry, color);
+    });
+    pen += rows[0].length + 1;
+  }
+  return pen - x - 1;
+}
+
+function signWidth() {
+  let width = 0;
+  for (const [base, ...marks] of SIGN_TEXT) width += (base === " " ? 4 : 6) + (marks.includes("horn") ? 1 : 0);
+  return width - 1;
+}
+
+function drawSignText(g, x, y, color) {
+  let pen = x;
+  for (const [base, ...marks] of SIGN_TEXT) {
+    if (base === " ") {
+      pen += 4;
+      continue;
+    }
+    BIG_FONT[base].forEach((row, ry) => {
+      for (let rx = 0; rx < row.length; rx++) if (row[rx] === "#") dot(g, pen + rx, y + ry, color);
+    });
+    for (const mark of marks) for (const [mx, my] of MARKS[mark]) dot(g, pen + mx, y + my, color);
+    pen += 6 + (marks.includes("horn") ? 1 : 0);
   }
 }
 
@@ -233,99 +343,159 @@ function paintBackdrop() {
   const g = layer.getContext("2d");
   const rand = mulberry32(7);
 
-  for (let y = 0; y < horizon; y++) {
-    for (let x = 0; x < W; x++) dot(g, x, y, dithered(SKY, y / horizon, x, y));
+  for (let y = 0; y < hy; y++) {
+    for (let x = 0; x < W; x++) dot(g, x, y, dithered(SKY, y / hy, x, y));
   }
 
-  const sunY = horizon - 10;
-  for (let y = sunY - 18; y <= sunY + 18; y++) {
-    for (let x = sunX - 18; x <= sunX + 18; x++) {
-      const d = Math.hypot(x - sunX, y - sunY);
-      if (d <= 8) dot(g, x, y, "#fff1c4");
-      else if (d <= 10) dot(g, x, y, "#ffe0a0");
-      else if (d <= 18 && BAYER[(y & 3) * 4 + (x & 3)] / 16 > (d - 10) / 8 + 0.35) dot(g, x, y, "#fbd08a");
+  const s = k / BRIDGE_Z;
+  const deckTop = Math.round(sy(2.05, BRIDGE_Z));
+  const deckBottom = Math.round(sy(1.8, BRIDGE_Z));
+  const railTop = Math.round(sy(2.22, BRIDGE_Z));
+  const water = Math.round(sy(0, BRIDGE_Z));
+  const sunY = deckTop - 3;
+  for (let y = sunY - 48; y <= sunY + 48; y++) {
+    for (let x = sunX - 64; x <= sunX + 64; x++) {
+      if (y < 0 || y >= hy) continue;
+      const d = Math.hypot((x - sunX) * 0.75, y - sunY);
+      if (d <= 10) dot(g, x, y, "#fff4cf");
+      else if (d <= 12) dot(g, x, y, "#ffe3a3");
+      else if (d <= 48 && BAYER[(y & 3) * 4 + (x & 3)] / 16 > (d - 12) / 36 + 0.2) dot(g, x, y, d < 26 ? "#fcd28c" : "#f8b878");
     }
   }
 
-  const heights = [];
-  let h = 5;
+  let h = 3;
   for (let x = 0; x < W; x++) {
-    h = Math.min(9, Math.max(3, h + (rand() - 0.5) * 1.6));
-    heights.push(Math.round(h));
-    for (let y = horizon - heights[x]; y < horizon; y++) dot(g, x, y, y === horizon - heights[x] ? "#3b4a36" : "#2b3528");
+    h = clamp(h + (rand() - 0.5) * 1.4, 1, 6);
+    for (let y = hy - Math.round(h); y < hy; y++) dot(g, x, y, y === hy - Math.round(h) ? "#8a5a6a" : "#6a4660");
   }
 
-  for (let x = 6; x < W - 2; x += 16 + Math.floor(rand() * 22)) {
-    const tall = 10 + Math.floor(rand() * 9);
-    const lean = rand() < 0.5 ? -1 : 1;
-    let cx = x;
-    let cy = horizon - heights[x];
-    for (let k = 0; k < tall; k++) {
-      cx = x + Math.round((lean * k * k) / (tall * 3));
-      cy = horizon - heights[x] - k;
-      dot(g, cx, cy, "#2b3528");
+  for (let y = hy; y < H; y++) {
+    for (let x = 0; x < W; x++) dot(g, x, y, dithered(WATER, Math.pow((y - hy) / (H - hy), 0.7), x, y));
+  }
+
+  for (let y = hy; y < H; y++) {
+    const dy = y - hy;
+    const edge = BANK * dy;
+    const mud = 1 + dy / 30;
+    for (let x = 0; x < W; x++) {
+      const off = Math.abs(x + 0.5 - cx);
+      if (off < edge) continue;
+      const color = off < edge + mud ? "#5c4a33" : dithered(LAND, Math.min(1, dy / (H - hy) + (off - edge) / W), x, y);
+      dot(g, x, y, color);
     }
-    for (const [dx, dy] of [[-1, 0], [1, 0], [-1, 1], [1, 1], [0, -1], [-1, -1], [1, -1]]) {
-      for (let s = 1; s <= 5; s++) dot(g, cx + dx * s, cy + dy * Math.min(s, 2) + (dx ? Math.floor((s * s) / 7) : 0), "#2b3528");
+  }
+
+  const piers = [];
+  for (let X = 0.75; (X * k) / BRIDGE_Z < W; X += 3.1) piers.push(X, -X);
+  const pierW = Math.max(2, Math.round(s * 0.3));
+
+  g.globalAlpha = 0.32;
+  for (let y = deckTop; y <= deckBottom; y++) {
+    const ry = 2 * water - y;
+    if (ry >= H) continue;
+    for (let x = 0; x < W; x++) if (hash(x * 3.1 + ry * 7.7) > 0.3) dot(g, x, ry, "#2a2233");
+  }
+  for (const X of piers) {
+    const px = Math.round(sx(X, BRIDGE_Z) - pierW / 2);
+    for (let ry = water; ry < Math.min(H, water + (water - deckBottom) * 0.8); ry++) {
+      if (hash(px + ry * 1.3) > 0.25) rect(g, px + Math.round((hash(ry) - 0.5) * 2), ry, pierW, 1, "#2a2233");
     }
-  }
-
-  for (let y = horizon; y < H; y++) {
-    for (let x = 0; x < W; x++) dot(g, x, y, dithered(WATER, (y - horizon) / (H - horizon), x, y));
-  }
-
-  g.globalAlpha = 0.45;
-  for (let x = 0; x < W; x++) {
-    for (let y = horizon; y < horizon + Math.round(heights[x] * 0.7); y++) dot(g, x, y, "#3a3426");
   }
   g.globalAlpha = 1;
 
-  const houses = Math.max(1, Math.floor(W / 130));
-  for (let n = 0; n < houses; n++) {
-    const hx = Math.floor(((n + 0.5) / houses) * W + (rand() - 0.5) * 30);
-    if (Math.abs(hx + 6 - sunX) < 22) continue;
-    g.fillStyle = "#6b4f3a";
-    g.fillRect(hx, horizon - 7, 12, 5);
-    g.fillStyle = "#9aa0a6";
-    g.fillRect(hx - 1, horizon - 9, 14, 2);
-    g.fillStyle = "#7d848c";
-    g.fillRect(hx, horizon - 10, 12, 1);
-    g.fillStyle = "#ffcf7a";
-    g.fillRect(hx + 3, horizon - 6, 2, 2);
-    g.fillRect(hx + 8, horizon - 6, 2, 2);
-    for (const sx of [1, 6, 10]) line(g, hx + sx, horizon - 2, hx + sx, horizon + 2, "#3a2a1e");
+  for (const X of piers) {
+    const px = Math.round(sx(X, BRIDGE_Z) - pierW / 2);
+    rect(g, px, deckBottom, pierW, water - deckBottom + 1, "#463a52");
+    rect(g, px + pierW - 1, deckBottom, 1, water - deckBottom + 1, "#c47a6a");
   }
+  rect(g, 0, deckTop, W, deckBottom - deckTop + 1, "#3e3249");
+  rect(g, 0, deckTop, W, 1, "#f1a37c");
+  rect(g, 0, deckBottom, W, 1, "#2a2233");
+  rect(g, 0, railTop, W, 1, "#5a4a66");
+  for (let x = 0; x < W; x += 3) rect(g, x, railTop, 1, deckTop - railTop, "#5a4a66");
+  for (let x = Math.round(W * 0.06); x < W; x += Math.max(24, Math.round(W / 9))) {
+    if (Math.abs(x - cx) < 60) continue;
+    rect(g, x, railTop - 9, 1, 9, "#5a4a66");
+    rect(g, x, railTop - 9, 3, 1, "#5a4a66");
+    rect(g, x + 2, railTop - 8, 1, 1, "#ffe3a3");
+  }
+
+  const textW = signWidth();
+  const boardW = textW + 12;
+  const boardH = 7 + 6 + 2 + 6;
+  const bx = Math.round(cx - boardW / 2);
+  const by = railTop - 6 - boardH;
+  for (const off of [10, boardW - 12]) rect(g, bx + off, by + boardH, 2, deckTop - by - boardH, "#2a2233");
+  rect(g, bx + 2, by + 2, boardW, boardH, "rgba(20, 10, 20, 0.45)");
+  rect(g, bx, by, boardW, boardH, "#f2d3a0");
+  rect(g, bx + 1, by + 1, boardW - 2, boardH - 2, "#8e2a2a");
+  rect(g, bx + 1, by + boardH - 3, boardW - 2, 2, "#6e1f22");
+  drawSignText(g, bx + 6, by + 7, "#4a1414");
+  drawSignText(g, bx + 6, by + 6, "#ffd34d");
+  signBox = { x: bx, y: by, w: boardW, h: boardH };
 
   return layer;
 }
 
 function makeScene() {
   const rand = mulberry32(31);
-  const decorCount = Math.min(DECOR.length, Math.max(2, Math.floor(W / 80)));
-  const order = [];
-  let d = 0;
-  for (let s = 0; s < SERVICES.length; s++) {
-    if (d < decorCount) order.push({ decor: d++ });
-    order.push({ service: s });
+  const goodsNames = Object.keys(GOODS);
+  boats = [];
+  for (const side of [-1, 1]) {
+    for (const row of [{ lateral: 1.12, start: 1.0, inner: true }, { lateral: 1.52, start: 1.5, inner: false }]) {
+      for (let z = row.start; z < BRIDGE_Z - 1.4; z += 1.0 + rand() * 0.12) {
+        const goods = goodsNames[Math.floor(rand() * goodsNames.length)];
+        boats.push({
+          kind: "boat",
+          side,
+          inner: row.inner,
+          lateral: row.lateral + rand() * 0.06,
+          z,
+          len: BOAT_LEN - rand() * 0.12,
+          goods,
+          quip: QUIPS[goods],
+          service: null,
+          paint: PAINT[Math.floor(rand() * PAINT.length)],
+          shirt: SHIRT[Math.floor(rand() * SHIRT.length)],
+          seed: rand() * 100,
+          box: null,
+        });
+      }
+    }
   }
-  while (d < decorCount) order.push({ decor: d++ });
 
-  boats = order.map((slot, lane) => ({
-    lane,
-    service: slot.service ?? null,
-    decor: slot.decor ?? null,
-    goods: slot.service !== undefined ? SERVICES[slot.service].goods || "mango" : DECOR[slot.decor].goods,
-    dir: slot.service !== undefined || rand() < 0.5 ? 1 : -1,
-    speed: 2.5 + rand() * 3,
-    frac: rand(),
-    x: 0,
-    y: 0,
-    seed: rand() * 100,
-    paint: PAINT[Math.floor(rand() * PAINT.length)],
-    shirt: SHIRT[Math.floor(rand() * SHIRT.length)],
-  }));
+  SERVICES.forEach((svc, i) => {
+    const side = i % 2 === 0 ? -1 : 1;
+    const target = 2.6 + Math.floor(i / 2) * 1.0;
+    const free = boats.filter((b) => b.side === side && b.inner && b.service === null);
+    free.sort((a, b) => Math.abs(a.z - target) - Math.abs(b.z - target));
+    const boat = free[0];
+    boat.service = i;
+    boat.goods = svc.goods || boat.goods;
+  });
 
-  hyacinths = Array.from({ length: 3 + Math.floor(W / 50) }, () => ({ fx: rand(), fy: rand(), speed: 0.8 + rand() * 1.2 }));
+  palms = [];
+  for (const side of [-1, 1]) {
+    for (let z = 0.9; z < BRIDGE_Z - 0.5; z += 0.6 + rand() * 0.9) {
+      palms.push({
+        kind: "palm",
+        side,
+        X: BANK + 0.35 + rand() * 1.5,
+        z,
+        h: 2.1 + rand() * 1.3,
+        lean: -side * (0.1 + rand() * 0.35),
+        seed: rand() * 100,
+      });
+    }
+  }
+
+  houses = [];
+  for (const side of [-1, 1]) {
+    for (const z of [2.2, 4.6, 7.0]) houses.push({ kind: "house", side, X: BANK + 0.3, z: z + rand() * 0.8, len: 0.9 + rand() * 0.4 });
+  }
+
+  sampan = { kind: "sampan", z: SAMPAN_Z, X: 0, dir: 1, seed: 3, box: null, quip: "Sells hủ tiếu. Breakfast for the market, not a service." };
+  billboard = { kind: "billboard", X: BANK + 0.4, z: 2.6, box: null };
 
   tagLayer.replaceChildren();
   for (const b of boats) {
@@ -337,21 +507,7 @@ function makeScene() {
   }
 }
 
-function placeBoats() {
-  const top = horizon + 22;
-  const bottom = Math.max(top + 8, H - 8 - Math.ceil((innerHeight - rosterPanel.getBoundingClientRect().top) / scale));
-  for (const b of boats) {
-    b.laneY = Math.round(top + ((bottom - top) * (b.lane + 0.5)) / boats.length);
-    b.x = b.frac * (W - L);
-  }
-  for (const p of hyacinths) {
-    p.x = p.fx * W;
-    p.y = Math.round(horizon + 4 + p.fy * (H - horizon - 8));
-  }
-}
-
 function resize() {
-  const fresh = boats.length === 0;
   scale = Math.max(1, Math.round(Math.min(innerWidth, innerHeight) / BASE));
   W = Math.ceil(innerWidth / scale);
   H = Math.ceil(innerHeight / scale);
@@ -359,185 +515,343 @@ function resize() {
   canvas.height = H;
   canvas.style.width = `${W * scale}px`;
   canvas.style.height = `${H * scale}px`;
-  horizon = Math.round(H * 0.42);
-  sunX = Math.round(W * 0.68);
+  hy = Math.round(H * 0.47);
+  cx = Math.round(W / 2);
+  k = Math.min(H - hy, W * 0.9);
+  sunX = Math.round(cx + Math.min(W * 0.26, 74));
   backdrop = paintBackdrop();
-  if (fresh) makeScene();
-  else for (const b of boats) b.frac = Math.min(Math.max(b.x / W, 0), 1);
-  placeBoats();
+  if (boats.length === 0) makeScene();
+  billboard.z = Math.max(2.6, ((billboard.X + 0.25) * k) / Math.max(20, W - 34 - cx));
 }
 
 function stateOf(b) {
   return b.service === null ? "up" : health[b.service].state;
 }
 
-function hullTop(i) {
-  const u = Math.abs((i - (L - 1) / 2) / ((L - 1) / 2));
-  return -Math.round(Math.pow(u, 2.2) * 4);
+function emptyBox() {
+  return { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
 }
 
-function hullBottom(i) {
-  const u = Math.abs((i - (L - 1) / 2) / ((L - 1) / 2));
-  return Math.max(hullTop(i), 3 - Math.round(Math.pow(u, 1.6) * 4));
+function grow(box, x0, y0, x1, y1) {
+  box.x0 = Math.min(box.x0, x0);
+  box.y0 = Math.min(box.y0, y0);
+  box.x1 = Math.max(box.x1, x1);
+  box.y1 = Math.max(box.y1, y1);
 }
 
-function drawCargo(px, goods, withLeaves) {
-  const [body, accent] = GOODS[goods];
-  const piles = [[-2, [10, 12, 14, 16, 18]], [-4, [12, 14, 16]], [-6, [14]]];
-  for (const [row, columns] of piles) {
-    for (const c of columns) {
-      px(c, row, body);
-      px(c + 1, row, body);
-      px(c, row + 1, body);
-      px(c + 1, row + 1, body);
-      px(c, row, accent);
-      if (withLeaves && row === -6) px(c, row - 1, accent);
-    }
-  }
-}
-
-function drawGlyphZ(x, y, alpha) {
+function drawZ(x, y, size, alpha) {
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = "#f7ead2";
-  ctx.fillRect(x, y, 3, 1);
-  ctx.fillRect(x + 1, y + 1, 1, 1);
-  ctx.fillRect(x, y + 2, 3, 1);
+  rect(ctx, x, y, size * 3, size, "#f7ead2");
+  rect(ctx, x + size, y + size, size, size, "#f7ead2");
+  rect(ctx, x, y + size * 2, size * 3, size, "#f7ead2");
   ctx.globalAlpha = 1;
+}
+
+function drawVendor(x, deckY, s, shirt, sleeping, t) {
+  const bw = Math.max(2, Math.round(s * 0.07));
+  const bh = Math.max(2, Math.round(s * (sleeping ? 0.11 : 0.16)));
+  const hs = Math.max(1, Math.round(s * 0.05));
+  const hatW = Math.max(3, Math.round(s * 0.17));
+  const hatH = Math.max(1, Math.round(s * 0.05));
+  rect(ctx, x - bw / 2, deckY - bh, bw, bh, shirt);
+  rect(ctx, x - hs / 2, deckY - bh - hs, hs, hs, "#d9a066");
+  for (let r = 0; r < hatH; r++) {
+    const w = Math.max(1, Math.round((hatW * (r + 1)) / hatH));
+    rect(ctx, x - w / 2, deckY - bh - hs - hatH + r, w, 1, r === hatH - 1 ? "#c8b47a" : "#ead9a0");
+  }
+  if (!sleeping) return deckY - bh - hs - hatH;
+  const z = Math.max(1, Math.round(s * 0.02));
+  for (let i = 0; i < 3; i++) {
+    const phase = mod(t * 0.5 + i / 3, 1);
+    drawZ(x + hatW / 2 + i * z * 3, deckY - bh - hs - hatH - z * 4 - phase * s * 0.25, z, 1 - phase);
+  }
+  return deckY - bh - hs - hatH;
+}
+
+function drawFruit(x, y, size, goods) {
+  const [body, accent] = GOODS[goods];
+  rect(ctx, x - size / 2, y, size, size, body);
+  dot(ctx, x - size / 2, y, accent);
 }
 
 function drawBoat(b, t) {
+  const X = b.side * b.lateral;
+  const z0 = b.z - travel;
+  b.box = null;
+  if (z0 < 0.35) return;
+  const z1 = z0 + b.len;
   const state = stateOf(b);
-  const moving = b.service === null ? b.speed : SPEED[state];
-  const bob = state === "degraded" ? Math.sin(t * 1.4 + b.seed) * 1.6 : Math.sin(t * 2 + b.seed) * (state === "down" ? 0.3 : 0.6);
-  const x0 = Math.round(b.x);
-  const y0 = Math.round(b.laneY + bob * motion);
-  const col = (i) => (b.dir > 0 ? x0 + i : x0 + L - 1 - i);
-  const px = (i, dy, color) => dot(ctx, col(i), y0 + dy, color);
+  const sink = state === "down" ? 0.06 : 0;
+  const rock = state === "degraded" ? 0.05 : 0.012;
+  const speed = state === "degraded" ? 2.2 : 1.1;
+  const lift = (u) => (Math.sin(t * speed + b.seed) * rock + Math.sin(t * speed * 0.7 + b.seed) * (u - 0.5) * rock) * motion - sink;
+  const xa = sx(X, z0);
+  const xb = sx(X, z1);
+  const from = Math.max(-1, Math.floor(Math.min(xa, xb)));
+  const to = Math.min(W, Math.ceil(Math.max(xa, xb)));
+  const box = emptyBox();
 
-  for (let i = 0; i < L; i++) {
-    for (let r = 1; r <= 2; r++) {
-      ctx.globalAlpha = r === 1 ? 0.35 : 0.18;
-      dot(ctx, col(i) + Math.round(Math.sin(t * 4 * motion + r + i * 0.4) * 0.6), y0 + hullBottom(i) + r, "#2e2619");
+  for (let x = from; x <= to; x++) {
+    const z = clamp(zAtColumn(X, x), z0, z1);
+    const u = (z - z0) / b.len;
+    const s = k / z;
+    const up = lift(u);
+    const water = Math.round(sy(0, z));
+    const end = Math.pow(Math.abs(2 * u - 1), 2.4);
+    const top = Math.round(sy(HULL + end * 0.16 + up, z));
+    const band = Math.max(1, Math.round(s * 0.025));
+    const plank = Math.max(3, Math.round(s * 0.06));
+    for (let y = top; y <= water; y++) {
+      const r = y - top;
+      let color = r % plank === 0 ? "#5a381f" : "#6b4426";
+      if (r === 0) color = "#c99a62";
+      else if (r <= band) color = b.paint;
+      else if (y >= water - Math.max(0, Math.round(s * 0.015))) color = "#3a2414";
+      dot(ctx, x, y, color);
     }
-  }
-  ctx.globalAlpha = 1;
+    const reflection = Math.max(1, Math.round(s * 0.07));
+    ctx.globalAlpha = 0.32;
+    for (let r = 1; r <= reflection; r++) dot(ctx, x + Math.round(Math.sin(t * 3 * motion + r + x * 0.3) * 0.6), water + r, "#2e2619");
+    ctx.globalAlpha = 1;
 
-  if (moving > 0 && motion > 0) {
-    for (let k = 1; k <= 6; k++) {
-      if (Math.floor(t * 6 + k) % 3 === 0) continue;
-      ctx.globalAlpha = (1 - k / 7) * 0.7;
-      px(-k, 2 + (k % 2), "#e8d6b0");
-      px(-k, 1 - (k % 2), "#e8d6b0");
+    let roofTop = top;
+    if (u > 0.3 && u < 0.74) {
+      const v = (u - 0.52) / 0.22;
+      const arch = Math.sqrt(Math.max(0, 1 - v * v));
+      roofTop = Math.round(sy(HULL + up + 0.1 + 0.22 * arch, z));
+      for (let y = roofTop; y < top; y++) {
+        let color = x % 3 === 0 ? "#5a3c24" : "#73502f";
+        if (y === roofTop) color = "#b08a5c";
+        if (u < 0.33) color = "#2a1c12";
+        dot(ctx, x, y, color);
+      }
+    }
+    grow(box, x, roofTop, x + 1, water + 1);
+  }
+
+  const zEye = z0 + 0.05 * b.len;
+  const sEye = k / zEye;
+  const eye = Math.max(1, Math.round(sEye * 0.03));
+  const eyeY = sy(HULL + 0.1 + lift(0.05), zEye) + Math.max(1, Math.round(sEye * 0.025)) + 1;
+  rect(ctx, sx(X, zEye) - eye, eyeY - eye, eye * 2, eye, "#c0392b");
+  rect(ctx, sx(X, zEye) - eye, eyeY, eye * 2, eye, "#f2efe6");
+  rect(ctx, sx(X, zEye) + (b.side < 0 ? 0 : -eye), eyeY, eye, eye, "#111111");
+
+  const zH = z0 + 0.18 * b.len;
+  const sH = k / zH;
+  if (sH >= 12) {
+    const headTop = drawVendor(sx(X, zH), sy(HULL + lift(0.18), zH), sH, b.shirt, state === "down", t);
+    grow(box, sx(X, zH) - 4, headTop, sx(X, zH) + 4, headTop);
+  }
+
+  const zP = z0 + 0.84 * b.len;
+  const sP = k / zP;
+  const xP = Math.round(sx(X, zP));
+  const baseY = sy(HULL + lift(0.84), zP);
+  const topY = Math.round(sy(HULL + POLE_HEIGHT + lift(0.84), zP));
+  const pw = Math.max(1, Math.round(sP * 0.025));
+  rect(ctx, xP, topY, pw, baseY - topY, "#7a5a36");
+  const arm = Math.max(3, Math.round(sP * 0.32));
+  const armY = topY + Math.max(1, Math.round(sP * 0.06));
+  rect(ctx, xP - arm / 2, armY, arm + pw, 1, "#6a4a2c");
+  const fruit = Math.max(1, Math.round(sP * 0.075));
+  const swing = Math.round(Math.sin(t * 1.3 + b.seed) * motion * sP * 0.01);
+  for (const off of [-0.5, 0, 0.5]) {
+    const fx = xP + off * arm + pw / 2;
+    const string = Math.max(1, Math.round(sP * 0.05));
+    rect(ctx, fx, armY + 1, 1, string, "#3a2a1e");
+    drawFruit(fx + swing, armY + 1 + string, fruit, b.goods);
+  }
+  grow(box, xP - arm / 2, topY, xP + arm / 2 + 1, baseY);
+
+  if (b.service !== null) {
+    const lantern = LANTERN[state];
+    const ls = Math.max(2, Math.round(sP * 0.07));
+    const lx = xP + pw;
+    const ly = Math.round(baseY - sP * 0.5);
+    const pulse = state === "down" ? (Math.floor(t * 1.5) % 2 === 0 ? 0.55 : 0.12) : 0.3 + Math.sin(t * 3) * 0.1;
+    ctx.globalAlpha = pulse;
+    rect(ctx, lx - ls, ly - ls, ls * 3, ls * 3, lantern);
+    for (let r = 0; r < Math.max(3, sP * 0.2); r++) {
+      dot(ctx, lx + Math.round(Math.sin(t * 4 + r) * 0.6), sy(0, zP) + 1 + r, lantern);
     }
     ctx.globalAlpha = 1;
+    rect(ctx, lx, ly - 1, ls, 1, "#3a2a1e");
+    rect(ctx, lx, ly, ls, ls, lantern);
+    b.tag.hidden = false;
+    b.tag.style.color = lantern;
+    b.tag.style.left = `${(xP + 0.5) * scale}px`;
+    b.tag.style.top = `${(topY - 2) * scale}px`;
   }
 
-  if (state === "down") {
-    line(ctx, col(L - 1), y0 - 2, col(L + 3), y0 + 3, "#3a2a1e");
-    line(ctx, col(6), y0 - 3, col(15), y0 - 3, "#8a6a40");
-  }
+  if (box.x1 > 0 && box.x0 < W) b.box = box;
+  else if (b.tag) b.tag.hidden = true;
+}
 
-  for (let i = 0; i < L; i++) {
-    const top = hullTop(i);
-    const bottom = hullBottom(i);
-    for (let dy = top; dy <= bottom; dy++) {
-      let color = "#6b4426";
-      if (dy === top) color = "#b07a46";
-      else if (dy === top + 1 && i > 2 && i < L - 3) color = b.paint;
-      else if (dy === bottom) color = "#3a2414";
-      px(i, dy, color);
+function drawPalm(p, t) {
+  const z = p.z - travel;
+  if (z < 0.3) return;
+  const s = k / z;
+  const X = p.side * p.X;
+  const bx = sx(X, z);
+  const by = sy(0, z);
+  const tx = bx + p.lean * s;
+  const ty = sy(p.h, z);
+  if (Math.max(bx, tx) + s < 0 || Math.min(bx, tx) - s > W) return;
+  if (signBox && tx + s > signBox.x - 4 && tx - s < signBox.x + signBox.w + 4 && ty - s * 0.4 < signBox.y + signBox.h + 4 && ty + s * 0.6 > signBox.y - 4) return;
+  const w = Math.max(1, Math.round(s * 0.05));
+  const steps = Math.max(2, Math.ceil(by - ty));
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const x = bx + (tx - bx) * u * u;
+    const y = by + (ty - by) * u;
+    rect(ctx, x - w / 2, y, w, 1, i % Math.max(3, w * 2) < w ? "#3a281b" : "#4d3524");
+  }
+  const sway = Math.sin(t * 0.9 + p.seed) * 0.08 * motion;
+  const fw = Math.max(1, Math.round(s * 0.03));
+  for (let f = 0; f < 9; f++) {
+    const angle = (f / 9) * Math.PI * 2 + p.seed + sway;
+    const len = s * (0.7 + 0.3 * hash(f + p.seed));
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle) * 0.35 - 0.2;
+    const n = Math.max(3, Math.ceil(len));
+    for (let j = 1; j <= n; j++) {
+      const u = j / n;
+      const x = tx + dx * len * u;
+      const y = ty + dy * len * u + len * 0.55 * u * u;
+      rect(ctx, x, y, fw, fw, "#22331d");
+      if (j % 2 === 0) {
+        const leaf = Math.max(1, Math.round(s * 0.09 * (1 - u)));
+        rect(ctx, x, y + fw, 1, leaf, hash(j + f * 13 + p.seed) > 0.75 ? "#6a8a46" : "#2f4a2a");
+      }
     }
   }
-  px(L - 6, -1, "#f2efe6");
-  px(L - 5, -1, "#111111");
-  px(L - 6, -2, "#c0392b");
-  px(L - 5, -2, "#c0392b");
+  for (let c = 0; c < 3; c++) rect(ctx, tx - w + c * w, ty + w, w, w, "#5a3d1e");
+}
 
-  drawCargo(px, b.goods, b.goods === "pineapple");
-
-  const sitting = state === "down";
-  const base = sitting ? -3 : -4;
-  px(4, base, "#2a2a3a");
-  px(5, base, "#2a2a3a");
-  if (!sitting) {
-    px(4, base + 1, "#2a2a3a");
-    px(5, base + 1, "#2a2a3a");
+function drawHouse(hs) {
+  const X = hs.side * hs.X;
+  const z0 = hs.z - travel;
+  if (z0 < 0.4) return;
+  const z1 = z0 + hs.len;
+  const xa = sx(X, z0);
+  const xb = sx(X, z1);
+  const from = Math.max(0, Math.floor(Math.min(xa, xb)));
+  const to = Math.min(W - 1, Math.ceil(Math.max(xa, xb)));
+  for (let x = from; x <= to; x++) {
+    const z = clamp(zAtColumn(X, x), z0, z1);
+    const u = (z - z0) / hs.len;
+    const roofTop = Math.round(sy(1.32, z));
+    const wallTop = Math.round(sy(1.05, z));
+    const wallBottom = Math.round(sy(0.35, z));
+    const ground = Math.round(sy(-0.04, z));
+    rect(ctx, x, roofTop, 1, wallTop - roofTop, "#8f969e");
+    dot(ctx, x, roofTop, "#c9cdd2");
+    for (let y = wallTop; y < wallBottom; y++) {
+      const lit = ((u > 0.15 && u < 0.35) || (u > 0.6 && u < 0.8)) && y > sy(0.88, z) && y < sy(0.6, z);
+      dot(ctx, x, y, lit ? "#ffcf7a" : y % 4 === 0 ? "#6a4c36" : "#7a5a40");
+    }
+    if (Math.abs(u - 0.08) < 0.04 || Math.abs(u - 0.5) < 0.04 || Math.abs(u - 0.92) < 0.04) rect(ctx, x, wallBottom, 1, ground - wallBottom, "#3a2a1e");
   }
-  for (let dy = base - 3; dy < base; dy++) {
-    px(4, dy, b.shirt);
-    px(5, dy, b.shirt);
-  }
-  px(4, base - 5, "#d9a066");
-  px(5, base - 5, "#d9a066");
-  px(4, base - 4, "#d9a066");
-  px(5, base - 4, "#d9a066");
-  for (let i = 2; i <= 7; i++) px(i, base - 6, i === 2 || i === 7 ? "#c8b47a" : "#ead9a0");
-  for (let i = 3; i <= 6; i++) px(i, base - 7, "#ead9a0");
-  px(4, base - 8, "#ead9a0");
-  px(5, base - 8, "#ead9a0");
+}
 
-  if (!sitting) {
-    const pace = state === "degraded" ? 1 : 2.6;
-    const swing = Math.round(Math.sin(t * pace * motion + b.seed) * 3);
-    px(6, base - 2, "#d9a066");
-    line(ctx, col(6), y0 + base - 2, col(-3 + swing), y0 + 4, "#8a6a40");
-    px(-3 + swing, 5, "#8a6a40");
-  } else {
-    for (let k = 0; k < 3; k++) {
-      const phase = mod(t * 0.5 + k / 3, 1);
-      drawGlyphZ(col(6) + k * 2 * b.dir, y0 + base - 10 - Math.round(phase * 9), 1 - phase);
+function drawSampan(t) {
+  const X = motion ? Math.sin(t * 0.045) * 1.0 : 0.35;
+  const dir = motion ? (Math.cos(t * 0.045) >= 0 ? 1 : -1) : 1;
+  const z = sampan.z - travel;
+  const s = k / z;
+  const xc = sx(X, z);
+  const water = Math.round(sy(0, z));
+  const len = Math.round(s * 0.8);
+  const box = emptyBox();
+  for (let i = 0; i < len; i++) {
+    const u = i / (len - 1);
+    const x = Math.round(xc - len / 2 + i);
+    const end = Math.pow(Math.abs(2 * u - 1), 2.2);
+    const top = Math.round(water - s * (0.11 + end * 0.08));
+    for (let y = top; y <= water; y++) dot(ctx, x, y, y === top ? "#c99a62" : y === water ? "#3a2414" : "#6b4426");
+    ctx.globalAlpha = 0.3;
+    dot(ctx, x, water + 1, "#2e2619");
+    ctx.globalAlpha = 1;
+    grow(box, x, top, x + 1, water + 1);
+  }
+  const stern = xc - (dir * len) / 2 + dir * Math.round(len * 0.15);
+  const deck = water - s * 0.11;
+  const head = drawVendor(stern, deck, s * 1.5, "#3a5fa0", false, t);
+  const swing = Math.sin(t * 2.4) * s * 0.12 * motion;
+  line(ctx, stern + dir * s * 0.04, deck - s * 0.18, stern - dir * s * 0.25 + swing, water + 1, "#8a6a40");
+  const pot = Math.max(2, Math.round(s * 0.12));
+  rect(ctx, xc - pot / 2, deck - pot, pot, pot, "#8f969e");
+  rect(ctx, xc - pot / 2, deck - pot, pot, 1, "#c9cdd2");
+  for (let i = 0; i < 3; i++) {
+    const phase = mod(t * 0.7 + i / 3, 1);
+    ctx.globalAlpha = (1 - phase) * 0.7;
+    dot(ctx, xc + Math.sin(t * 2 + i) * 1.5, deck - pot - 1 - phase * s * 0.3, "#f7ead2");
+    ctx.globalAlpha = 1;
+  }
+  if (motion) {
+    for (let i = 1; i <= 5; i++) {
+      if (Math.floor(t * 6 + i) % 3 === 0) continue;
+      ctx.globalAlpha = (1 - i / 6) * 0.6;
+      dot(ctx, xc - (dir * len) / 2 - dir * i * 2, water + (i % 2), "#e8d6b0");
+      ctx.globalAlpha = 1;
     }
   }
+  grow(box, xc - 4, head, xc + 4, head);
+  sampan.box = box;
+}
 
-  if (b.service === null) return;
+function usageColor(value) {
+  if (value === null) return "#9a948a";
+  if (value >= 90) return "#e5484d";
+  if (value >= 75) return "#f2d14b";
+  return "#5fd35f";
+}
 
-  const lantern = LANTERN[state];
-  line(ctx, col(POLE), y0 - 1, col(POLE), y0 - 20, "#7a5a36");
-  px(POLE + 1, -19, "#3a2a1e");
-  px(POLE + 1, -18, "#3a2a1e");
-  const [body, accent] = GOODS[b.goods];
-  px(POLE + 1, -17, body);
-  px(POLE + 2, -17, body);
-  px(POLE + 1, -16, body);
-  px(POLE + 2, -16, body);
-  px(POLE + 1, -17, accent);
-  px(POLE - 1, -14, "#3a2a1e");
-  px(POLE - 2, -14, "#3a2a1e");
-  const pulse = state === "down" ? (Math.floor(t * 1.5) % 2 === 0 ? 0.5 : 0.15) : 0.25 + Math.sin(t * 3) * 0.1;
-  ctx.globalAlpha = pulse;
-  ctx.fillStyle = lantern;
-  ctx.fillRect(Math.min(col(POLE - 4), col(POLE - 1)), y0 - 15, 4, 5);
-  for (let r = 3; r <= 5; r++) px(POLE - 2, hullBottom(POLE - 2) + r, lantern);
-  ctx.globalAlpha = 1;
-  px(POLE - 3, -13, "#3a2a1e");
-  px(POLE - 2, -13, "#3a2a1e");
-  px(POLE - 3, -12, lantern);
-  px(POLE - 2, -12, lantern);
-  px(POLE - 3, -11, lantern);
-  px(POLE - 2, -11, lantern);
-
-  b.tag.style.color = lantern;
-  b.tag.style.left = `${(col(POLE) + 0.5) * scale}px`;
-  b.tag.style.top = `${(y0 - 21) * scale}px`;
+function drawBillboard() {
+  const z = billboard.z - travel;
+  const s = k / z;
+  const ground = sy(0, z);
+  const xc = Math.round(sx(billboard.X, z));
+  const bw = 51;
+  const bh = 27;
+  const legs = Math.max(10, Math.round(s * 1.3));
+  const bx = Math.round(clamp(xc - bw / 2, 2, W - bw - 2));
+  let by = Math.round(ground - legs - bh);
+  if (signBox && bx < signBox.x + signBox.w + 2 && by < signBox.y + signBox.h + 2) by = Math.max(by, signBox.y + signBox.h + 4);
+  const post = Math.max(2, Math.round(ground - by - bh));
+  for (const off of [8, bw - 10]) rect(ctx, bx + off, by + bh, 2, post, "#3a2a1e");
+  rect(ctx, bx + 2, by + 2, bw, bh, "rgba(20, 10, 20, 0.45)");
+  rect(ctx, bx, by, bw, bh, "#f2d3a0");
+  rect(ctx, bx + 1, by + 1, bw - 2, bh - 2, "#1f4a3a");
+  const stale = !stats.updated || Date.now() - stats.updated > STATS_STALE_MS;
+  [["CPU", stats.cpu], ["RAM", stats.ram], ["DISK", stats.disk]].forEach(([label, value], i) => {
+    const y = by + 4 + i * 7;
+    glyphText(ctx, SMALL_FONT, label, bx + 4, y, "#f7ead2");
+    rect(ctx, bx + 21, y, 12, 5, "#143326");
+    if (value !== null && !stale) rect(ctx, bx + 21, y, Math.max(1, Math.round((12 * value) / 100)), 5, usageColor(value));
+    const text = value === null || stale ? "--" : `${Math.round(value)}%`;
+    const width = text.length * 4 - 1;
+    glyphText(ctx, SMALL_FONT, text, bx + bw - 4 - width, y, stale ? "#9a948a" : "#f7ead2");
+  });
+  billboard.box = { x0: bx, y0: by, x1: bx + bw, y1: by + bh + post };
 }
 
 function drawSky(t) {
-  const clouds = [[0.1, 0.2, 1.2], [0.55, 0.12, 0.8], [0.8, 0.32, 1.6]];
+  const clouds = [[0.12, 0.18, 1.2], [0.5, 0.1, 0.8], [0.82, 0.3, 1.5]];
   for (const [fx, fy, speed] of clouds) {
     const x = Math.round(mod(fx * W + t * speed * motion, W + 40) - 20);
-    const y = Math.round(fy * horizon);
-    ctx.fillStyle = "#fbd0b0";
-    ctx.fillRect(x + 3, y, 8, 1);
-    ctx.fillStyle = "#f4a7a0";
-    ctx.fillRect(x, y + 1, 15, 1);
-    ctx.fillRect(x + 2, y + 2, 10, 1);
+    const y = Math.round(fy * hy);
+    rect(ctx, x + 3, y, 8, 1, "#fbd0b0");
+    rect(ctx, x, y + 1, 15, 1, "#f4a7a0");
+    rect(ctx, x + 2, y + 2, 10, 1, "#e48a8a");
   }
   if (motion === 0) return;
-  const cycle = mod(t, 22) / 22;
+  const cycle = mod(t, 26) / 26;
   const flap = Math.floor(t * 4) % 2;
-  for (const [ox, oy] of [[0, 0], [-5, 2], [-9, -1]]) {
+  for (const [ox, oy] of [[0, 0], [-5, 2], [-9, -1], [-13, 3]]) {
     const x = Math.round(cycle * (W + 60) - 30 + ox);
-    const y = Math.round(horizon * 0.38 + oy + Math.sin(t + ox) * 1.5);
+    const y = Math.round(hy * 0.3 + oy + Math.sin(t + ox) * 1.5);
     dot(ctx, x, y, "#f5f1e6");
     dot(ctx, x - 1, y - flap, "#f5f1e6");
     dot(ctx, x + 1, y - flap, "#f5f1e6");
@@ -545,71 +859,108 @@ function drawSky(t) {
 }
 
 function drawWater(t) {
-  const depth = H - horizon;
-  const count = 2 + Math.floor(W / 60);
-  for (let y = horizon + 2; y < H; y += 3) {
-    const d = (y - horizon) / depth;
-    for (let k = 0; k < count; k++) {
-      const seed = hash(y * 31 + k);
-      const len = 2 + Math.floor(seed * 3 + d * 4);
-      const x = Math.round(mod(seed * W * 7 + t * (3 + d * 8) * motion * (k % 2 ? 1 : 0.6), W + len) - len);
-      ctx.globalAlpha = 0.35 + d * 0.3;
-      ctx.fillStyle = seed > 0.5 ? "#b49670" : "#c8a882";
-      ctx.fillRect(x, y, len, 1);
+  const flow = t * 0.45 * motion;
+  for (let y = hy + 1; y < H; y++) {
+    const dy = y - hy;
+    const z = k / dy;
+    const phase = z * 1.8 + flow;
+    if (phase - Math.floor(phase) > 0.2) continue;
+    const half = BANK * dy;
+    const count = 1 + Math.floor(Math.min(half, W / 2) / 14);
+    for (let j = 0; j < count; j++) {
+      const seed = hash(Math.floor(phase) * 17.3 + j * 3.1 + y * 0.01);
+      const len = 1 + Math.round(seed * 3 + dy * 0.05);
+      ctx.globalAlpha = 0.25 + Math.min(0.35, dy / 300);
+      rect(ctx, cx + (seed * 2 - 1) * Math.min(half, W / 2) * 0.95, y, len, 1, seed > 0.5 ? "#d8b48a" : "#c8a882");
     }
   }
   const tick = Math.floor(t * 3 * motion);
-  for (let y = horizon + 1; y < H; y += 2) {
-    const d = (y - horizon) / depth;
-    const half = 3 + d * W * 0.07;
+  for (let y = hy + 1; y < H; y += 2) {
+    const d = (y - hy) / (H - hy);
+    const half = 2 + (y - hy) * 0.2;
     for (let j = -2; j <= 2; j++) {
       const seed = hash(y * 13 + j * 7 + tick);
-      if (seed < 0.35) continue;
-      ctx.globalAlpha = 0.75 * (1 - d * 0.7);
-      ctx.fillStyle = seed > 0.8 ? "#fff1c4" : "#ffd98a";
-      ctx.fillRect(Math.round(sunX + (j * half) / 2 + (seed - 0.5) * half), y, 1 + Math.round(seed * 3), 1);
+      if (seed < 0.4) continue;
+      ctx.globalAlpha = 0.8 * (1 - d * 0.75);
+      rect(ctx, sunX + (j * half) / 2 + (seed - 0.5) * half, y, 1 + Math.round(seed * 3), 1, seed > 0.8 ? "#fff4cf" : "#ffd98a");
     }
   }
   ctx.globalAlpha = 1;
 }
 
-function drawHyacinths() {
-  for (const p of hyacinths) {
-    const x = Math.round(p.x);
-    ctx.fillStyle = "#3f7a3a";
-    ctx.fillRect(x, p.y, 5, 1);
-    ctx.fillRect(x + 1, p.y - 1, 3, 1);
-    ctx.fillStyle = "#6fae52";
-    ctx.fillRect(x + 1, p.y - 2, 1, 1);
-    ctx.fillRect(x + 3, p.y - 1, 1, 1);
-    ctx.fillStyle = "#b48ad8";
-    ctx.fillRect(x + 2, p.y - 3, 1, 2);
+function drawSignLights(t) {
+  if (!signBox) return;
+  const step = Math.floor(t * 3 * motion);
+  for (let x = signBox.x + 2; x < signBox.x + signBox.w - 2; x += 4) {
+    const on = (x / 4 + step) % 2 < 1;
+    dot(ctx, x, signBox.y + 2, on ? "#fff4cf" : "#c7883f");
+    dot(ctx, x, signBox.y + signBox.h - 2, on ? "#c7883f" : "#fff4cf");
   }
 }
 
-function step(dt) {
-  for (const b of boats) {
-    const moving = b.service === null ? b.speed : SPEED[stateOf(b)];
-    b.x += b.dir * moving * dt * motion;
-    if (b.dir > 0 && b.x > W + 4) b.x = -L - 4;
-    if (b.dir < 0 && b.x < -L - 4) b.x = W + 4;
+function drawBow(t) {
+  const bob = Math.round(Math.sin(t * 1.5) * 1.2 * motion);
+  const len = Math.round(Math.min(H * 0.3, 64));
+  const tipY = H - len + bob;
+  for (let y = tipY; y < H; y++) {
+    const r = y - tipY;
+    const half = Math.round(r * 0.95 + 1);
+    const rim = 2 + Math.floor(r / 22);
+    rect(ctx, cx - half - 1, y, 1, 1, "#2f5d6b");
+    rect(ctx, cx + half, y, 1, 1, "#2f5d6b");
+    rect(ctx, cx - half, y, half * 2, 1, r % 9 === 0 ? "#3e2716" : r < 10 ? "#7a5030" : "#5e3c22");
+    rect(ctx, cx - half, y, rim, 1, "#c99a62");
+    rect(ctx, cx + half - rim, y, rim, 1, "#c99a62");
   }
-  for (const p of hyacinths) {
-    p.x += p.speed * dt * motion;
-    if (p.x > W + 2) p.x = -6;
+  rect(ctx, cx - 1, tipY - 6, 2, 7, "#8a5a34");
+  rect(ctx, cx - 1, tipY - 7, 2, 1, "#c99a62");
+  if (motion) {
+    for (let i = 0; i < 8; i++) {
+      const y = tipY + len * 0.35 + i * (len * 0.08);
+      const r = y - tipY;
+      const spray = 2 + ((i * 7 + Math.floor(t * 8)) % 5);
+      ctx.globalAlpha = 0.55;
+      dot(ctx, cx - r * 0.95 - spray, y, "#f2e6cc");
+      dot(ctx, cx + r * 0.95 + spray, y, "#f2e6cc");
+    }
+    ctx.globalAlpha = 1;
+  }
+  const gx = cx + Math.round(len * 0.22);
+  const gy = H - Math.round(len * 0.42) + bob;
+  rect(ctx, gx, gy, 6, 9, "#d9d3c7");
+  rect(ctx, gx + 1, gy + 3, 4, 5, "#7a4a26");
+  rect(ctx, gx + 1, gy + 1, 2, 2, "#f2efe6");
+  rect(ctx, gx + 3, gy + 2, 2, 1, "#f2efe6");
+  line(ctx, gx + 4, gy + 2, gx + 6, gy - 4, "#d94848");
+  const kx = cx - Math.round(len * 0.42);
+  const ky = H - Math.round(len * 0.3) + bob;
+  rect(ctx, kx, ky, 13, 5, "#a07a42");
+  for (let x = kx; x < kx + 13; x += 2) rect(ctx, x, ky + 1, 1, 4, "#7a5a30");
+  for (const [mx, my] of [[1, -2], [4, -3], [7, -2], [10, -2], [5, -5]]) {
+    rect(ctx, kx + mx, ky + my, 3, 2, "#e8c040");
+    dot(ctx, kx + mx, ky + my, "#f6dc7a");
   }
 }
 
-function boxOf(b) {
-  const tall = b.service === null ? 13 : 22;
-  return { x: Math.round(b.x) - 1, y: b.laneY - tall, w: L + 2, h: tall + 6 };
+function distance(o) {
+  if (o.kind === "boat") return Math.hypot(o.lateral, o.z - travel + o.len / 2);
+  if (o.kind === "sampan") return o.z - travel;
+  return Math.hypot(o.X, o.z - travel);
 }
 
-function boatAt(bx, by) {
-  const ordered = [...boats].sort((a, c) => c.laneY - a.laneY);
-  for (const b of ordered) {
-    const box = boxOf(b);
-    if (bx >= box.x && bx < box.x + box.w && by >= box.y && by < box.y + box.h) return b;
+function frameObjects() {
+  return [...houses, ...palms, ...boats, sampan].sort((a, b) => distance(b) - distance(a));
+}
+
+function hitTargets() {
+  const nearest = [...boats, sampan].filter((o) => o.box).sort((a, b) => distance(a) - distance(b));
+  return billboard.box ? [billboard, ...nearest] : nearest;
+}
+
+function targetAt(bx, by) {
+  for (const o of hitTargets()) {
+    const box = o.box;
+    if (bx >= box.x0 - 1 && bx <= box.x1 + 1 && by >= box.y0 - 1 && by <= box.y1 + 1) return o;
   }
   return null;
 }
@@ -629,21 +980,41 @@ function row(dl, term, value) {
   dl.append(dt, dd);
 }
 
-function fillTip(b) {
+function percent(value) {
+  return value === null ? "unknown" : `${value.toFixed(1)}%`;
+}
+
+function fillTip(o) {
   const title = document.createElement("strong");
-  if (b.service === null) {
-    title.textContent = `Ghe ${b.goods}`;
+  if (o.kind === "billboard") {
+    title.textContent = "This machine";
+    const dl = document.createElement("dl");
+    row(dl, "CPU", percent(stats.cpu));
+    row(dl, "RAM", percent(stats.ram));
+    row(dl, "Disk", percent(stats.disk));
+    row(dl, "Measured", stats.updated ? `${new Date(stats.updated).toLocaleTimeString()} (${ago(stats.updated)})` : "never");
+    const parts = [title, dl];
+    if (stats.note) {
+      const note = document.createElement("p");
+      note.textContent = stats.note;
+      parts.push(note);
+    }
+    tip.replaceChildren(...parts);
+    return;
+  }
+  if (o.kind === "sampan" || o.service === null) {
+    title.textContent = o.kind === "sampan" ? "Ghe hủ tiếu" : `Ghe ${o.goods}`;
     const p = document.createElement("p");
-    p.textContent = `Not a service. ${DECOR[b.decor].quip}`;
+    p.textContent = `Not a service. ${o.quip}`;
     tip.replaceChildren(title, p);
     return;
   }
-  const svc = SERVICES[b.service];
-  const h = health[b.service];
+  const svc = SERVICES[o.service];
+  const h = health[o.service];
   title.textContent = svc.name;
   const dl = document.createElement("dl");
   row(dl, "Status", `${LABEL[h.state]} (${MEANING[h.state]})`);
-  row(dl, "Uptime", h.checks ? `${((100 * h.afloat) / h.checks).toFixed(1)}% of ${h.checks} checks this visit` : "no check yet");
+  row(dl, "Uptime", h.checks ? `${((100 * h.healthy) / h.checks).toFixed(1)}% of ${h.checks} checks this visit` : "no check yet");
   row(dl, "Latency", h.latency === null ? "unknown" : `${Math.round(h.latency)} ms`);
   row(dl, "Last check", h.last ? `${new Date(h.last).toLocaleTimeString()} (${ago(h.last)})` : "never");
   const parts = [title, dl];
@@ -663,11 +1034,11 @@ function fillTip(b) {
   tip.replaceChildren(...parts);
 }
 
-function showTip(b, cx, cy) {
-  fillTip(b);
+function showTip(o, px, py) {
+  fillTip(o);
   tip.hidden = false;
-  const left = Math.min(cx + 14, innerWidth - tip.offsetWidth - 16);
-  const top = Math.min(cy + 14, innerHeight - tip.offsetHeight - 16);
+  const left = Math.min(px + 14, innerWidth - tip.offsetWidth - 16);
+  const top = Math.min(py + 14, innerHeight - tip.offsetHeight - 16);
   tip.style.left = `${Math.max(16, left)}px`;
   tip.style.top = `${Math.max(16, top)}px`;
   lastTipAt = performance.now();
@@ -678,18 +1049,13 @@ function hideTip() {
   hovered = null;
 }
 
-function boatCenter(b) {
-  const box = boxOf(b);
-  return [(box.x + box.w / 2) * scale, (box.y + box.h / 2) * scale];
-}
-
 canvas.addEventListener("pointermove", (event) => {
   if (pinned) return;
-  const b = boatAt(event.clientX / scale, event.clientY / scale);
-  canvas.style.cursor = b ? "pointer" : "default";
-  if (!b) return hideTip();
-  hovered = b;
-  showTip(b, event.clientX, event.clientY);
+  const o = targetAt(event.clientX / scale, event.clientY / scale);
+  canvas.style.cursor = o ? "pointer" : "default";
+  if (!o) return hideTip();
+  hovered = o;
+  showTip(o, event.clientX, event.clientY);
 });
 
 canvas.addEventListener("pointerleave", () => {
@@ -697,11 +1063,11 @@ canvas.addEventListener("pointerleave", () => {
 });
 
 canvas.addEventListener("click", (event) => {
-  const b = boatAt(event.clientX / scale, event.clientY / scale);
-  pinned = b;
-  if (!b) return hideTip();
-  hovered = b;
-  showTip(b, event.clientX, event.clientY);
+  const o = targetAt(event.clientX / scale, event.clientY / scale);
+  pinned = o;
+  if (!o) return hideTip();
+  hovered = o;
+  showTip(o, event.clientX, event.clientY);
 });
 
 document.addEventListener("keydown", (event) => {
@@ -717,30 +1083,34 @@ function renderRoster() {
     const li = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    const dotEl = document.createElement("i");
-    dotEl.className = `dot ${h.state === "unknown" ? "" : h.state}`;
+    const mark = document.createElement("i");
+    mark.className = `dot ${h.state === "unknown" ? "" : h.state}`;
     const name = document.createElement("span");
     name.textContent = svc.name;
     const state = document.createElement("span");
     state.className = "state";
     state.textContent = LABEL[h.state].toLowerCase();
-    button.append(dotEl, name, state);
+    button.append(mark, name, state);
     button.addEventListener("click", () => {
       const b = boats.find((boat) => boat.service === i);
+      if (!b || !b.box) return;
       pinned = b;
       hovered = b;
-      const [cx, cy] = boatCenter(b);
-      showTip(b, cx, cy);
+      showTip(b, ((b.box.x0 + b.box.x1) / 2) * scale, ((b.box.y0 + b.box.y1) / 2) * scale);
     });
     li.append(button);
     roster.append(li);
   });
   const counts = { up: 0, degraded: 0, down: 0, unknown: 0 };
   for (const h of health) counts[h.state]++;
-  const words = [`${counts.up} of ${SERVICES.length} boats afloat`];
-  if (counts.degraded) words.push(`${counts.degraded} struggling`);
-  if (counts.down) words.push(`${counts.down} anchored`);
+  const words = [`${counts.up} of ${SERVICES.length} boats trading`];
+  if (counts.degraded) words.push(`${counts.degraded} slow`);
+  if (counts.down) words.push(`${counts.down} closed`);
   summary.textContent = `${words.join(", ")}.`;
+}
+
+function renderMachine() {
+  machine.textContent = `CPU ${percent(stats.cpu)} · RAM ${percent(stats.ram)} · Disk ${percent(stats.disk)}`;
 }
 
 function countFaults(value, tally) {
@@ -753,28 +1123,35 @@ function countFaults(value, tally) {
   return tally;
 }
 
-async function probe(svc) {
+async function fetchJson(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   const started = performance.now();
   try {
-    const res = await fetch(svc.path, { cache: "no-store", credentials: "same-origin", redirect: "manual", signal: controller.signal });
+    const res = await fetch(path, { cache: "no-store", credentials: "same-origin", redirect: "manual", signal: controller.signal });
     const latency = performance.now() - started;
-    if (res.type === "opaqueredirect") return { state: "down", latency, note: "The sign-in session expired. Reload the page." };
-    if (!res.ok) return { state: "down", latency, note: `The service answered HTTP ${res.status}.` };
+    if (res.type === "opaqueredirect") return { ok: false, latency, note: "The sign-in session expired. Reload the page." };
+    if (!res.ok) return { ok: false, latency, note: `The answer was HTTP ${res.status}.` };
     let body = null;
     try { body = await res.json(); } catch { body = null; }
-    const tally = countFaults(body && body.services, { total: 0, failed: 0 });
-    if (tally.failed) return { state: "degraded", latency, note: `${tally.failed} of ${tally.total} parts report a fault.` };
-    if (body && typeof body.status === "string" && body.status !== "ok") return { state: "degraded", latency, note: `The service reports ${body.status}.` };
-    if (latency > SLOW_MS) return { state: "degraded", latency, note: `The answer took more than ${SLOW_MS} ms.` };
-    return { state: "up", latency, note: "" };
+    return { ok: true, latency, body };
   } catch {
     const latency = performance.now() - started;
-    return { state: "down", latency: null, note: latency >= TIMEOUT_MS - 50 ? `No answer after ${TIMEOUT_MS / 1000} s.` : "The service is unreachable." };
+    return { ok: false, latency: null, note: latency >= TIMEOUT_MS - 50 ? `No answer after ${TIMEOUT_MS / 1000} s.` : "The address is unreachable." };
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function probe(svc) {
+  const res = await fetchJson(svc.path);
+  if (!res.ok) return { state: "down", latency: res.latency, note: res.note };
+  const body = res.body;
+  const tally = countFaults(body && body.services, { total: 0, failed: 0 });
+  if (tally.failed) return { state: "degraded", latency: res.latency, note: `${tally.failed} of ${tally.total} parts report a fault.` };
+  if (body && typeof body.status === "string" && body.status !== "ok") return { state: "degraded", latency: res.latency, note: `The service reports ${body.status}.` };
+  if (res.latency > SLOW_MS) return { state: "degraded", latency: res.latency, note: `The answer took more than ${SLOW_MS} ms.` };
+  return { state: "up", latency: res.latency, note: "" };
 }
 
 async function checkAll() {
@@ -786,22 +1163,46 @@ async function checkAll() {
     h.note = result.note;
     h.last = Date.now();
     h.checks++;
-    if (result.state !== "down") h.afloat++;
+    if (result.state !== "down") h.healthy++;
   }));
   renderRoster();
 }
 
-let previous = performance.now();
+function usage(value) {
+  return typeof value === "number" && Number.isFinite(value) ? clamp(value, 0, 100) : null;
+}
+
+async function readStats() {
+  const res = await fetchJson(STATS_PATH);
+  stats.fetched = Date.now();
+  if (!res.ok || !res.body) {
+    stats.cpu = stats.ram = stats.disk = null;
+    stats.note = res.ok ? "The reading is not JSON." : res.note;
+  } else {
+    stats.cpu = usage(res.body.cpu);
+    stats.ram = usage(res.body.ram);
+    stats.disk = usage(res.body.disk);
+    stats.updated = typeof res.body.updated === "number" ? res.body.updated * 1000 : null;
+    stats.note = stats.updated && Date.now() - stats.updated > STATS_STALE_MS ? "The reading is stale. Check the homelab-stats timer." : "";
+  }
+  renderMachine();
+}
+
 function frame(now) {
-  const dt = Math.min(0.1, (now - previous) / 1000);
-  previous = now;
   const t = now / 1000;
-  step(dt);
+  travel = motion * Math.sin(t * 0.07) * 0.22;
   ctx.drawImage(backdrop, 0, 0);
   drawSky(t);
+  drawSignLights(t);
   drawWater(t);
-  drawHyacinths();
-  for (const b of [...boats].sort((a, c) => a.laneY - c.laneY)) drawBoat(b, t);
+  for (const o of frameObjects()) {
+    if (o.kind === "boat") drawBoat(o, t);
+    else if (o.kind === "palm") drawPalm(o, t);
+    else if (o.kind === "house") drawHouse(o);
+    else drawSampan(t);
+  }
+  drawBillboard();
+  drawBow(t);
   if (!tip.hidden && hovered && now - lastTipAt > 1000) {
     fillTip(hovered);
     lastTipAt = now;
@@ -813,13 +1214,18 @@ function frame(now) {
 
 addEventListener("resize", resize);
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") checkAll();
+  if (document.visibilityState !== "visible") return;
+  checkAll();
+  readStats();
 });
 
 renderRoster();
+renderMachine();
 resize();
 checkAll();
+readStats();
 setInterval(checkAll, CHECK_EVERY_MS);
+setInterval(readStats, STATS_EVERY_MS);
 requestAnimationFrame(frame);
 </script>
 </body>

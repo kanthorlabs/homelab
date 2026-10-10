@@ -2,7 +2,7 @@
 
 ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-.PHONY: help nginx kanthord kanthord-cleanup check
+.PHONY: help nginx stats kanthord kanthord-cleanup check
 
 help:
 	@echo "Homelab. Run make <target>."
@@ -11,6 +11,8 @@ help:
 	@echo "                   /s/kanthord goes to the daemon. / serves the floating market homepage"
 	@echo "                   HOMELAB_HOST=name sets the host, for example homelab.example.com"
 	@echo "                   Without it, every target reads HOMELAB_HOST= from .env"
+	@echo "  stats            Install the homelab-stats timer with sudo. Every 60 s it writes"
+	@echo "                   the CPU, RAM and disk usage that the homepage reads at /stats.json"
 	@echo "  kanthord         Run the kanthord container under /s/kanthord on 127.0.0.1:31416"
 	@echo "                   The first run creates its configuration in the volume"
 	@echo "                   IMAGE=name:tag (kanthord:latest) CONTAINER=name VOLUME=name"
@@ -21,9 +23,11 @@ help:
 
 nginx:
 	@$(ROOT)/nginx/install.sh
+stats:
+	@$(ROOT)/stats/install.sh
 kanthord:
 	@$(ROOT)/kanthord/run.sh
 kanthord-cleanup:
 	@$(ROOT)/kanthord/cleanup.sh
 check:
-	@shellcheck $(ROOT)/lib/*.sh $(ROOT)/nginx/*.sh $(ROOT)/kanthord/*.sh
+	@shellcheck $(ROOT)/lib/*.sh $(ROOT)/nginx/*.sh $(ROOT)/kanthord/*.sh $(ROOT)/stats/*.sh
