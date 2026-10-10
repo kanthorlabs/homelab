@@ -4,19 +4,33 @@ SCRIPT_NAME=homelab-nginx
 require_command sudo
 homelab_require curl curl
 homelab_require nginx nginx
+homelab_require openssl openssl
 
 host=$(homelab_host) || exit 1
 port=$(homelab_port) || exit 1
 site=/etc/nginx/sites-available/homelab
 enabled=/etc/nginx/sites-enabled/homelab
 template="$ROOT/nginx/site.conf"
+page="$ROOT/www/index.html"
+webroot=/var/www/homelab
 
 work=$(mktemp -d) || die "cannot create a temporary directory"
 trap 'rm -rf "$work"' EXIT
 rendered="$work/site.conf"
 backup="$work/site.conf.previous"
 
-sed -e "s/@HOST@/$host/" -e "s/@HOMELAB_PORT@/$port/" "$template" >"$rendered" || die "cannot render $template"
+inline_hash() {
+	local blocks
+	blocks=$(grep -cx "<$1>" "$page")
+	[ "$blocks" = 1 ] || die "$page needs exactly one <$1> line, found $blocks"
+	awk -v start="<$1>" -v stop="</$1>" '$0 == stop { on = 0 } on { print } $0 == start { on = 1; printf "\n" }' "$page" |
+		openssl dgst -sha256 -binary | openssl base64 -A
+}
+script_hash="sha256-$(inline_hash script)" || exit 1
+style_hash="sha256-$(inline_hash style)" || exit 1
+
+sed -e "s/@HOST@/$host/" -e "s/@HOMELAB_PORT@/$port/" \
+	-e "s|@SCRIPT_HASH@|$script_hash|" -e "s|@STYLE_HASH@|$style_hash|" "$template" >"$rendered" || die "cannot render $template"
 
 had_link=0
 sudo test -L "$enabled" && had_link=1
@@ -33,6 +47,10 @@ restore() {
 if sudo test -f "$site"; then
 	sudo cp "$site" "$backup" || die "cannot back up $site"
 fi
+
+log "installing the homepage in $webroot"
+sudo install -d -o root -g root -m 755 "$webroot" || die "cannot create $webroot"
+sudo install -o root -g root -m 644 "$page" "$webroot/index.html" || die "cannot install $webroot/index.html"
 
 log "installing $site for $host"
 sudo install -o root -g root -m 644 "$rendered" "$site" || die "cannot install $site"

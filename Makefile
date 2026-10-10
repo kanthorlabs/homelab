@@ -8,7 +8,7 @@ help:
 	@echo "Homelab. Run make <target>."
 	@echo ""
 	@echo "  nginx            Install the nginx site of the homelab on 127.0.0.1:80 with sudo"
-	@echo "                   /s/kanthord goes to the daemon. / serves the nginx default page"
+	@echo "                   /s/kanthord goes to the daemon. / serves the floating market homepage"
 	@echo "                   HOMELAB_HOST=name sets the host, for example homelab.example.com"
 	@echo "                   Without it, every target reads HOMELAB_HOST= from .env"
 	@echo "  kanthord         Run the kanthord container under /s/kanthord on 127.0.0.1:31416"
