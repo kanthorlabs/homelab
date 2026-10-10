@@ -4,7 +4,8 @@ Description=Write the CPU, RAM and disk usage of the homelab for its homepage
 [Service]
 Type=oneshot
 ExecStart=/usr/local/lib/homelab/collect-stats /run/homelab-stats/stats.json
-DynamicUser=yes
+User=homelab-stats
+Group=homelab-stats
 RuntimeDirectory=homelab-stats
 RuntimeDirectoryMode=0755
 RuntimeDirectoryPreserve=yes
