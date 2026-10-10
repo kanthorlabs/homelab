@@ -68,7 +68,11 @@ if ! sudo nginx -t; then
 	die "nginx -t failed. The previous site is back. Fix the reported error, then rerun"
 fi
 sudo systemctl enable nginx || die "cannot enable nginx"
-sudo systemctl reload-or-restart nginx || die "nginx did not start. Read journalctl -u nginx"
+if [ "$had_default" = 1 ]; then
+	sudo systemctl restart nginx || die "nginx did not start. Read journalctl -u nginx"
+else
+	sudo systemctl reload-or-restart nginx || die "nginx did not start. Read journalctl -u nginx"
+fi
 
 status=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: $host" http://127.0.0.1/)
 [ "$status" = "200" ] || die "http://127.0.0.1/ for $host answers $status, not 200"
