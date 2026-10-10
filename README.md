@@ -52,7 +52,7 @@ cp .env.example .env
 
 The page probes each service every 15 s from the browser. Hover or tap a boat to read its status, uptime, latency and last check. Add a service to the `SERVICES` list in `www/index.html`.
 
-The board on the right dock shows the CPU, RAM and disk usage of the machine. `make stats` installs the timer that writes these values. The timer runs a sandboxed script as a dynamic user without network access. nginx serves the file read-only at `/stats.json`. The billboard shows `--` when the reading is older than 3 minutes.
+The board on the right dock shows the CPU, RAM and disk usage of the machine. `make stats` installs the timer that writes these values. The timer runs a sandboxed script as the `homelab-stats` system user without network access. nginx serves the file read-only at `/stats.json`. The board shows `--` when the reading is older than 3 minutes.
 
 nginx serves the page with a strict Content Security Policy. `make nginx` computes the hashes of the inline script and style, so the page runs no other code.
 
