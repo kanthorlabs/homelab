@@ -1,5 +1,5 @@
 [Unit]
-Description=Write the CPU, RAM and disk usage of the homelab for its homepage
+Description=Write the CPU, RAM and disk usage and the CPU temperature of the homelab for its homepage
 
 [Service]
 Type=oneshot

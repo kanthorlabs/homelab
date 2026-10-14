@@ -231,6 +231,8 @@ const SMALL_FONT = {
   I: ["###", " # ", " # ", " # ", "###"],
   S: ["###", "#  ", "###", "  #", "###"],
   K: ["# #", "# #", "## ", "# #", "# #"],
+  T: ["###", " # ", " # ", " # ", " # "],
+  E: ["###", "#  ", "###", "#  ", "###"],
   " ": ["   ", "   ", "   ", "   ", "   "],
 };
 
@@ -246,7 +248,7 @@ const boardText = document.getElementById("board");
 const motion = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1;
 
 const health = SERVICES.map(() => ({ state: "unknown", checks: 0, healthy: 0, latency: null, last: null, note: "" }));
-const stats = { cpu: null, ram: null, disk: null, updated: null, note: "No reading yet." };
+const stats = { cpu: null, ram: null, disk: null, temp: null, updated: null, note: "No reading yet." };
 
 let W = 0;
 let H = 0;
@@ -592,7 +594,7 @@ function paintForeground() {
   }
 
   const sbW = 51;
-  const sbH = 27;
+  const sbH = 34;
   statsBoard = { x: Math.round(clamp(dockX - sbW - 6 * u, W * 0.6, W - sbW - 2)), y: Math.round(dockY - sbH - 10 * u), w: sbW, h: sbH };
   for (const off of [8, sbW - 10]) rect(g, statsBoard.x + off, statsBoard.y + sbH, 2, dockY - statsBoard.y - sbH, "#4a2e18");
 
@@ -894,18 +896,25 @@ function usageColor(value) {
   return "#3fd36b";
 }
 
+function tempColor(value) {
+  if (value === null) return "#9aa3b2";
+  if (value >= 85) return "#ef4b4b";
+  if (value >= 70) return "#f2a93b";
+  return "#3fd36b";
+}
+
 function drawStatsBoard() {
   const { x: bx, y: by, w: bw, h: bh } = statsBoard;
   rect(ctx, bx + 2, by + 2, bw, bh, "rgba(0, 0, 0, 0.3)");
   rect(ctx, bx, by, bw, bh, "#3a2414");
   rect(ctx, bx + 1, by + 1, bw - 2, bh - 2, "#243a4e");
   const stale = !stats.updated || Date.now() - stats.updated > STATS_STALE_MS;
-  [["CPU", stats.cpu], ["RAM", stats.ram], ["DISK", stats.disk]].forEach(([label, value], i) => {
+  [["CPU", stats.cpu, "%", usageColor], ["RAM", stats.ram, "%", usageColor], ["DISK", stats.disk, "%", usageColor], ["TEMP", stats.temp, "C", tempColor]].forEach(([label, value, suffix, color], i) => {
     const y = by + 4 + i * 7;
     glyphText(ctx, SMALL_FONT, label, bx + 4, y, "#f4f1e8");
     rect(ctx, bx + 21, y, 12, 5, "#1a2a38");
-    if (value !== null && !stale) rect(ctx, bx + 21, y, Math.max(1, Math.round((12 * value) / 100)), 5, usageColor(value));
-    const text = value === null || stale ? "--" : `${Math.round(value)}%`;
+    if (value !== null && !stale) rect(ctx, bx + 21, y, Math.max(1, Math.round((12 * value) / 100)), 5, color(value));
+    const text = value === null || stale ? "--" : `${Math.round(value)}${suffix}`;
     glyphText(ctx, SMALL_FONT, text, bx + bw - 3 - text.length * 4, y, stale ? "#9aa3b2" : "#f4f1e8");
   });
 }
@@ -1007,6 +1016,10 @@ function percent(value) {
   return value === null ? "unknown" : `${value.toFixed(1)}%`;
 }
 
+function celsius(value) {
+  return value === null ? "unknown" : `${value.toFixed(1)} °C`;
+}
+
 function fillTip(o) {
   const title = document.createElement("strong");
   if (o.kind === "stats") {
@@ -1015,6 +1028,7 @@ function fillTip(o) {
     row(dl, "CPU", percent(stats.cpu));
     row(dl, "RAM", percent(stats.ram));
     row(dl, "Disk", percent(stats.disk));
+    row(dl, "CPU temperature", celsius(stats.temp));
     row(dl, "Measured", stats.updated ? `${new Date(stats.updated).toLocaleTimeString()} (${ago(stats.updated)})` : "never");
     const parts = [title, dl];
     if (stats.note) {
@@ -1121,7 +1135,7 @@ function renderRoster() {
 }
 
 function renderMachine() {
-  machine.textContent = `CPU ${percent(stats.cpu)}, RAM ${percent(stats.ram)}, disk ${percent(stats.disk)}.`;
+  machine.textContent = `CPU ${percent(stats.cpu)}, RAM ${percent(stats.ram)}, disk ${percent(stats.disk)}, CPU temperature ${celsius(stats.temp)}.`;
 }
 
 function countFaults(value, tally) {
@@ -1186,12 +1200,13 @@ function usage(value) {
 async function readStats() {
   const res = await fetchJson(STATS_PATH);
   if (!res.ok || !res.body) {
-    stats.cpu = stats.ram = stats.disk = null;
+    stats.cpu = stats.ram = stats.disk = stats.temp = null;
     stats.note = res.ok ? "The reading is not JSON." : res.note;
   } else {
     stats.cpu = usage(res.body.cpu);
     stats.ram = usage(res.body.ram);
     stats.disk = usage(res.body.disk);
+    stats.temp = usage(res.body.temp);
     stats.updated = typeof res.body.updated === "number" ? res.body.updated * 1000 : null;
     stats.note = stats.updated && Date.now() - stats.updated > STATS_STALE_MS ? "The reading is stale. Check the homelab-stats timer." : "";
   }
