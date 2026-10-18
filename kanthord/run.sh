@@ -33,6 +33,7 @@ esac
 log "starting $name from $image on 127.0.0.1:$port"
 "$engine" run -d --name "$name" --restart=always "${hardening[@]}" \
 	-p "127.0.0.1:$port:31415" \
+	-p "127.0.0.1:1455:1455" \
 	-v "$volume:/var/lib/kanthord" \
 	"$image" >/dev/null || die "cannot start $name"
 
