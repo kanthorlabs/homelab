@@ -27,7 +27,7 @@ cp .env.example .env
 | ----------------------- | ------------------------------------------------------------------------------ |
 | `make nginx`            | Install the nginx site on `127.0.0.1:80` and the homepage in `/var/www/homelab`. A failed `nginx -t` restores the previous site. |
 | `make stats`            | Install the `homelab-stats` timer. Every 60 s it writes the CPU, RAM and disk usage to `/run/homelab-stats/stats.json`. |
-| `make kanthord`         | Run the kanthord container under `/s/kanthord` on `127.0.0.1:31416`. It also publishes port 1455 on `127.0.0.1` for the login callback. |
+| `make kanthord`         | Run the kanthord container under `/s/kanthord` on `127.0.0.1:31416`. It also publishes `127.0.0.1:1455` for the callback of the OpenAI Codex browser login. From another machine, forward it with `ssh -L 1455:127.0.0.1:1455 <server>`. Through the public host the engine uses device mode, so the callback is not needed. |
 | `make kanthord-cleanup` | Remove the kanthord container. Ask before the removal of its volume.          |
 | `make check`            | Lint the scripts with shellcheck.                                              |
 

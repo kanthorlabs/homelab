@@ -15,6 +15,7 @@ help:
 	@echo "                   the CPU, RAM and disk usage that the homepage reads at /stats.json"
 	@echo "  kanthord         Run the kanthord container under /s/kanthord on 127.0.0.1:31416"
 	@echo "                   The first run creates its configuration in the volume"
+	@echo "                   It also publishes 127.0.0.1:1455 for the OpenAI Codex browser login callback"
 	@echo "                   IMAGE=name:tag (kanthord:latest) CONTAINER=name VOLUME=name"
 	@echo "                   HOMELAB_PORT=port moves it off 31416"
 	@echo "  kanthord-cleanup Remove the kanthord container. Ask before it removes the volume"
