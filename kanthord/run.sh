@@ -12,7 +12,7 @@ name=$(homelab_name CONTAINER "$HOMELAB_CONTAINER") || exit 1
 volume=$(homelab_name VOLUME "$HOMELAB_VOLUME") || exit 1
 base_path=/s/kanthord
 config=/var/lib/kanthord/config/kanthord/kanthord.yaml
-hardening=(--cap-drop=ALL --security-opt=no-new-privileges)
+hardening=(--cap-drop=ALL --security-opt=no-new-privileges --ulimit core=0)
 
 "$engine" image inspect "$image" >/dev/null 2>&1 || die "image $image is missing. Build it with make release-image in kanthord"
 
