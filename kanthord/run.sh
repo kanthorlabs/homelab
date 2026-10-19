@@ -41,6 +41,7 @@ log "starting $name from $image on 127.0.0.1:$port"
 	-p "127.0.0.1:$port:31415" \
 	-p "127.0.0.1:1455:1455" \
 	-v "$volume:/var/lib/kanthord" \
+	-e "KANTHORD_ENDPOINT=http://127.0.0.1:31415$base_path" \
 	"$image" >/dev/null || die "cannot start $name"
 
 for _ in $(seq 1 30); do
