@@ -28,7 +28,13 @@ fi
 
 "$engine" rm -f "$name" >/dev/null 2>&1 || true
 case "$(basename "$engine")" in
-podman) systemctl --user enable podman-restart.service >/dev/null 2>&1 || die "cannot enable podman-restart.service, so $name would not start after a reboot" ;;
+podman)
+	if command -v systemctl >/dev/null 2>&1; then
+		systemctl --user enable podman-restart.service >/dev/null 2>&1 || die "cannot enable podman-restart.service, so $name would not start after a reboot"
+	else
+		log "systemctl is missing, so restart after reboot is not configured"
+	fi
+	;;
 esac
 log "starting $name from $image on 127.0.0.1:$port"
 "$engine" run -d --name "$name" --restart=always "${hardening[@]}" \
